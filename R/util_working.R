@@ -1,8 +1,8 @@
-library(cluster) #silhouette function
+require(cluster) #silhouette function
 #Sys.getenv("LD_LIBRARY_PATH"), path is not included
-dyn.load("/mnt/home/wmao1/software/miniconda3/lib/libgdal.so.20")
+#dyn.load("/mnt/home/wmao1/software/miniconda3/lib/libgdal.so.20")
 #library(terra)
-library(emojifont) #recommended but not required
+require(emojifont) #recommended but not required
 
 
 
@@ -18,33 +18,33 @@ AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.
   sample.index <- sample(nonzero.index, length(nonzero.index)*frac.impute)
   gene.exp.hide <- gene.exp
   gene.exp.hide[sample.index] <- 0
-  
+
   recon.grid <- c()
   L4.grid <- c()
-  
-  
+
+
   #calculate SVD ahead of time to save some time
   #########################
   message("Computing SVD")
   set.seed(123)
-  svdres=rsvd(gene.exp.hide, k = max(k.arg.list)+1) #to_drop -> +1 
+  svdres=rsvd(gene.exp.hide, k = max(k.arg.list)+1) #to_drop -> +1
   svdres=rotateSVD(svdres)
   #########################
-  
-  
+
+
   for (ii in 1:length(k.arg.list)){
     print(ii)
-    
+
     ICAp.res.impute <- manifoldDecomp_adaptive(gene.exp.hide, L, k = k.arg.list[ii], L4 = L4.arg.list[ii], L4_adaptive = 2, to_drop = T, svdres = svdres)
-    
+
     #reconstruction error
     Y.recon <- ICAp.res.impute$Z %*% ICAp.res.impute$B
     recon.grid <- c(recon.grid, recon.error(gene.exp, Y.recon, sample.index))
     L4.grid <- c(L4.grid, ICAp.res.impute$L4)
   }#for ii
-  
-  
-  
+
+
+
   #scan for local optimal
   #if there are many, pick up the larger one
   ##########################################################
@@ -53,11 +53,11 @@ AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.
   for (kk in  temp.seq){
     if ( ( recon.grid[kk] <=recon.grid[kk-1]) & (recon.grid[kk] <=recon.grid[kk+1]) ){
       temp <- c(temp, kk)
-    }#if  
+    }#if
   }#for ii
   k.to_report <- k.arg.list[max(temp)]
-  
-  
+
+
   #return the result
   ################################
   return(list(k.arg.list = k.arg.list, L4.arg.list = L4.arg.list, recon.grid = recon.grid, L4.grid = L4.grid, k.optim = k.to_report))
@@ -107,7 +107,7 @@ unicode.convert <- function(x){
 colorPalette <- function(partition, fill = T){
   num.of.clusters <- length(unique(partition))
   val.names <- sort(as.character(1:num.of.clusters))
-  
+
   if (num.of.clusters <=8){
     #ColorBlind_Pal()
     values <- ggthemes::colorblind_pal()(num.of.clusters)
@@ -116,71 +116,71 @@ colorPalette <- function(partition, fill = T){
   }else{
     values <- scales::hue_pal()(num.of.clusters)
   }#else
-  
+
   #names(values) <- val.names
   names(values) <- as.character(unique(partition))
   if (fill){
-    return(ggplot2::scale_fill_manual(values = values))  
+    return(ggplot2::scale_fill_manual(values = values))
   }else{
     return(ggplot2::scale_color_manual(values = values))
   }#else
-  
+
 }#colorPalette
 
 
 
 ClusterPlot_label <- function(dat, cluster.label, pt.size = 2, text.size = 7, ratio = 1, use.myratio = F, image.alpha = 1){
   dat.tmp <- dat
-  
+
   if (use.myratio){
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
     myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
     message(paste0("The aspect ratio is ", myratio))
-    
+
     ratio <- myratio
   }#if
-  
+
   dat.tmp@meta.data$Cluster <- cluster.label
-  p1 <- SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha=image.alpha)+ggplot2::theme(aspect.ratio = ratio)  
-  
+  p1 <- SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha=image.alpha)+ggplot2::theme(aspect.ratio = ratio)
+
   data.p1 <- ggplot_build(p1)
   #data.p1$data[[1]]$shape <- NA #not necessary
   dat.extra <- data.p1$data[[1]]
-  
+
   grp.real <- sort(unique(cluster.label))
   names(grp.real) <- sort(unique(as.character(dat.extra$group)))
-  
-  
+
+
   dat.extra$label <- unlist(lapply(grp.real[dat.extra$group], unicode.convert))
   dat.extra$Cluster <- grp.real[dat.extra$group]
-  
+
   p1+geom_text(data = dat.extra, aes(x=x,y=y, label = label), size = text.size)
 }#ClusterPlot_label
 
 
 
 
-#caveat: cluster may be not the real cluster: Seurat treat cluster as 
+#caveat: cluster may be not the real cluster: Seurat treat cluster as
 ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio = F, cluster.highlight = NULL, image.alpha = 1){
   dat.tmp <- dat
-  
+
   #coord <- Seurat::GetTissueCoordinates(object = dat@images$slice1)
-  
+
   if (use.myratio){
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
     myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
     message(paste0("The aspect ratio is ", myratio))
-    
+
     ratio <- myratio
   }#if
-  
+
   dat.tmp@meta.data$Cluster <- cluster.label
   if (is.null(cluster.highlight)){
-    SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)      
+    SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
   }else{
-    SpatialPlot(dat.tmp,  pt.size.factor = pt.size, cells.highlight = rownames(dat.tmp@meta.data)[dat.tmp$Cluster==cluster.highlight], cols.highlight = c("red", alpha("gray10", 0)),alpha = NULL, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio) 
+    SpatialPlot(dat.tmp,  pt.size.factor = pt.size, cells.highlight = rownames(dat.tmp@meta.data)[dat.tmp$Cluster==cluster.highlight], cols.highlight = c("red", alpha("gray10", 0)),alpha = NULL, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
   }#else
-  
+
 }#ClusterPlot
 
 
@@ -189,36 +189,36 @@ ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio 
 
 #duplicates to ClusterPlot_fast, ClusterPlot_fast is more comprehensive
 Slide.ClusterPlot <- function(coor, cluster.label, pt.size = 2, ratio = 1, plot.all = F){
-  
+
   cluster.label <- as.character(cluster.label)
   cluster.unique <- unique(cluster.label)
-  
+
   dat.plot <- data.frame(x= coor[,1], y = coor[,2], cluster = cluster.label)
-  
+
    if (plot.all){
-    
-    
+
+
     p <- list()
     for (ii in 1:length(cluster.unique)){
       cluster.highlight <- cluster.unique[ii]
-      
+
       values <- rep("grey", length(cluster.unique))
       names(values) <- cluster.unique
       values[as.character(cluster.highlight)] <- "red"
-      
+
       p[[ii]] <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+ggplot2::scale_color_manual(values = values)
-      
+
     }#for ii
-    
+
     p <- ggarrange(plotlist = p)
-    
-    
+
+
   }else{
-    
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+geom_point(size = pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)    
-    
+
+    p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+geom_point(size = pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)
+
   }#else
-  
+
   return(p)
 }#Slide.ClusterPlot
 
@@ -228,40 +228,40 @@ Slide.ClusterPlot <- function(coor, cluster.label, pt.size = 2, ratio = 1, plot.
 
 
 ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio = 1, use.myratio=F, label.on = F, cluster.highlight = NULL){
-  
+
   if (use.myratio){
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
     myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
     message(paste0("The aspect ratio is ", myratio))
-    
+
     ratio <- myratio
   }#if
-  
-  
+
+
   #dat.test <- data.frame(x=dat@images$slice1@coordinates$row, y = dat@images$slice1@coordinates$col, cluster = cluster.label)
   #flip the coordinate
   dat.test <- data.frame(x=dat@images[[1]]@coordinates$imagecol, y = dat@images[[1]]@coordinates$imagerow, cluster = cluster.label)
-  
+
   if (is.null(cluster.highlight)){
-    
+
     if (label.on){
       dat.test$label <- unlist(lapply(dat.test$cluster, unicode.convert))
       ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_text(aes(label=label), size= text.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+colorPalette(dat.test$cluster, fill = F)
-      
+
     }else{
       ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+colorPalette(dat.test$cluster, fill = F)
     }#else
-    
+
   }else{
     #highlight one single cluster
     cluster.unique <- unique(dat.test$cluster)
     values <- rep("grey", length(cluster.unique))
     names(values) <- cluster.unique
     values[as.character(cluster.highlight)] <- "red"
-    
+
     ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+ggplot2::scale_color_manual(values = values)
   }#else
-  
+
 }#ClusterPlot_fast
 
 
@@ -272,55 +272,55 @@ ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio =
 
 #duplicate to LvPlot_fast, LvPlot_fast is more comprehensive
 Slide.LvPlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verbose =T, pt.size = 2, ratio = 1, x.offset = 1.05, font.size = 7, plot.all = F){
-  
+
   if (nrow(LVs) > ncol(LVs)){
     LVs <- t(LVs)
   }#if
-  
-  
+
+
   if (gene.verbose & is.null(loading)){
-    stop("loading can't be NULL")  
+    stop("loading can't be NULL")
   }#if
-  
+
   if (is.numeric(LVs) & is.vector(LVs)){
     #no gene verbose in this case
-    
+
     dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs)
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggplot2::theme(aspect.ratio = ratio)    
-    
+    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggplot2::theme(aspect.ratio = ratio)
+
   }else if (plot.all){
     #no gene.verbose in this case
     p <- list()
-    
+
     for (ii in 1:nrow(LVs)){
       dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[ii,])
-      p[[ii]] <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", ii))+ggplot2::theme(aspect.ratio = ratio) 
+      p[[ii]] <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", ii))+ggplot2::theme(aspect.ratio = ratio)
     }#for ii
-    
+
     p <- ggarrange(plotlist = p)
-    
+
   }else{
-    
+
     print(paste0("LV ", LV.index))
-    
+
     if (gene.verbose){
       print(sort(loading[,LV.index], decreasing = T)[1:10])
     }#if
-    
+
     dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[LV.index,])
-    
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", LV.index))+ggplot2::theme(aspect.ratio = ratio)    
-    
+
+    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", LV.index))+ggplot2::theme(aspect.ratio = ratio)
+
     if (gene.verbose){
       p <- p+annotate("text", x = max(dat.plot$x)*x.offset , y = median(dat.plot$y), label = paste(names(sort(loading[,LV.index], decreasing = T)[1:15]), collapse = "\n"), size = font.size)
-    } #if  
-    
-    
+    } #if
+
+
   }#else
-    
-  
+
+
   return(p)
-  
+
 }#Slide.LvPlot
 
 
@@ -330,44 +330,44 @@ Slide.LvPlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verbose =T,
 #seurat object plot
 LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2, ratio = 1, use.myratio = F, ws = F, x.offset = 5, image.alpha= 1){
   dat.tmp <- dat
-  
+
   if (use.myratio){
     #coord <- Seurat::GetTissueCoordinates(object = dat@images$slice1)
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
     myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
     message(paste0("The aspect ratio is ", myratio))
-    
+
     ratio <- myratio
   }#if
-  
+
   print(paste0("LV ", LV.index))
-  
+
   if (gene.verbose){
     print(sort(loading[,LV.index], decreasing = T)[1:10])
   }#if
-  
+
   tmp <- LVs[LV.index,]
   dat.tmp@meta.data$LV <- tmp
   if (length(dat.tmp@images[[1]]@key)==0){
     dat.tmp@images[[1]]@key <- "image_"
   }#if
-  
-  res <- Seurat::SpatialPlot(dat.tmp, features = "LV", pt.size.factor = pt.size, image.alpha=image.alpha)+ggplot2::theme(aspect.ratio = ratio)    
-  
+
+  res <- Seurat::SpatialPlot(dat.tmp, features = "LV", pt.size.factor = pt.size, image.alpha=image.alpha)+ggplot2::theme(aspect.ratio = ratio)
+
   if (gene.verbose){
-    res <- res+annotate("text", x = layer_scales(res)$x$range$range[2]+x.offset, y = median(layer_scales(res)$y$range$range), label = paste(names(sort(loading[,LV.index], decreasing = T)[1:10]), collapse = "\n"), size =3)  
+    res <- res+annotate("text", x = layer_scales(res)$x$range$range[2]+x.offset, y = median(layer_scales(res)$y$range$range), label = paste(names(sort(loading[,LV.index], decreasing = T)[1:10]), collapse = "\n"), size =3)
   }#gene.verbose
-  
+
   #add title
   res <- res+ggtitle(paste0("LV ", LV.index))
-  
+
   #use customer color palette
   res <- res+ggthemes::scale_fill_gradient2_tableau(palette = "Orange-Blue Diverging", trans = "reverse")
-  
+
   if (ws){
     res <- res+coord_cartesian(clip = "off")
   }#if
-  
+
   return(res)
 }#LvPlot
 
@@ -376,33 +376,33 @@ LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2
 
 
 LvPlot_fast <- function(dat, val, pt.size=2, text.size=7, ratio = 1, use.myratio=F, plot.all = F){
-  
+
   if (use.myratio){
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
     myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
     message(paste0("The aspect ratio is ", myratio))
-  
-    ratio <- myratio  
+
+    ratio <- myratio
   }#
-  
+
   if (!plot.all){
     #flip the coordinate
     dat.test <- data.frame(x=dat@images[[1]]@coordinates$imagecol, y = dat@images[[1]]@coordinates$imagerow, val = val)
-    
+
     ggplot(dat.test, aes(x=x,y=-y,color= val))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+ggthemes::scale_color_gradient2_tableau(palette = "Orange-Blue Diverging", trans = "reverse")
-    
+
   }else{
     message(paste0("Total number of panels is ", nrow(val)))
-    
+
     plot.list <- list()
     for (ii in 1:nrow(val)){
       dat.test <- data.frame(x=dat@images[[1]]@coordinates$imagecol, y = dat@images[[1]]@coordinates$imagerow, val = val[ii,])
       plot.list[[ii]] <-     ggplot(dat.test, aes(x=x,y=-y,color= val))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+ggthemes::scale_color_gradient2_tableau(palette = "Orange-Blue Diverging", trans = "reverse")+ggtitle(paste0("LV ", ii))+theme(plot.title = element_text(size= 20, face = "bold"))
-      
+
     }#for ii
     ggarrange(plotlist = plot.list)
   }#else
-  
+
 }#LvPlot_fast
 
 
@@ -422,7 +422,7 @@ silhouette_score <- function(input, k, random.seed = 1){
 
 leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adaptive.size = 2){
   partition <- leiden::leiden(nn, resolution_parameter = resolution.start)
-  
+
   if (length(unique(partition)) < num.of.cluster){
     reso.left <- resolution.start
     reso.right <- resolution.start*adaptive.size
@@ -434,19 +434,19 @@ leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adap
   }else{
     return(partition)
   }#else
-  
+
   cat(paste0(reso, " ", reso.left, " ", reso.right, "\n"))
-  
+
   while(length(unique(partition)) != num.of.cluster){
     partition <- leiden::leiden(nn, resolution_parameter = reso)
-    
+
     if (length(unique(partition)) < num.of.cluster){
       message("Explode")
       if (reso == reso.left){
         reso.left <- reso.left
         reso <- (reso.left+reso.right)/2
         reso.right <- reso.right
-        
+
       }else if (reso < reso.right){
         reso.left <- reso
         reso <- (reso+reso.right)/2
@@ -456,83 +456,83 @@ leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adap
         reso.left <- reso.right
         reso.right <- reso
       }#else if
-      
+
     }else if ( length(unique(partition)) > num.of.cluster){
       message("Shrink")
-      
+
       if (reso == reso.left){
         reso <- reso/adaptive.size
         reso.right <- reso.left
         reso.left <- reso
-        
+
       }else if (reso < reso.right){
         reso.right <- reso
         reso <- (reso.left+reso)/2
         reso.left <- reso.left
-        
+
       }else if (reso == reso.right){
         reso.left <- reso.left
         reso <- (reso.left+reso.right)/2
         reso.right <- reso.right
-        
-      }#else if 
-      
+
+      }#else if
+
     }else{
       return(partition)
     }#else
-    
+
     cat(paste0(reso, " ", reso.left, " ", reso.right, "\n"))
   }#while
-  
+
 }#leiden_adaptive
 
 
 niche_report <- function(ICAp.res, k.list = 2:15, num.of.cluster = NULL, verbose = T, scale = F, LV.index = NULL){
-  
+
   if (is.null(num.of.cluster)){
     avg_sil <- sapply(k.list, silhouette_score, input = t(ICAp.res$B))
-    
+
     if (verbose){
       plot(k.list, type='b', avg_sil, xlab='Number of clusters', ylab='Average Silhouette Scores', frame=FALSE)
     }#verbose
-    
+
     #select num.of.cluster
     ###############################################
     order.list <- order(avg_sil, decreasing = T)
     flag <- T
     pointer <- 1
-    
+
     while (flag){
       if ( (order.list[pointer]!=1) & (order.list[pointer]!= length(order.list) ) ){
         if ( (avg_sil[order.list[pointer]] > avg_sil[order.list[pointer]-1]) & (avg_sil[order.list[pointer]] > avg_sil[order.list[pointer]+1]) ){
           flag <- F
         }#if
       }#if
-      
+
       if (flag){
         pointer <- pointer+1
       }#if
     }#while
-    
+
     num.of.cluster <- k.list[order.list[pointer]]
-    
+
   }#if
-  
+
   kmeans.input <- t(ICAp.res$B)
-  
+
   if (scale){
     #scale per dimension
     kmeans.input <- scale(kmeans.input)
   }#scale
-  
+
   #selected LVs
   if (!is.null(LV.index)){
     kmeans.input <- kmeans.input[,LV.index]
   }#if
-    
+
   #kmeans clustering
   km.res <- kmeans(kmeans.input, centers = num.of.cluster, nstart = 25)
-  
+
   return(list(k = num.of.cluster, cluster = as.character(km.res$cluster)))
 }#niche_report
 
@@ -541,20 +541,20 @@ niche_report <- function(ICAp.res, k.list = 2:15, num.of.cluster = NULL, verbose
 
 
 md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = 0.8, early_flag = T){
-  
+
   Bdiff=Inf
   BdiffTrace=double()
   BdiffCount=0
-  
+
   getT=function(x){-quantile(x[x<0], adaptive.frac)}
   round2=function(x){signif(x,4)}
-  
+
 
   for ( i in 1:max.iter){
     #Z update
     ######################################
     Zraw=Z=(Y%*%t(B))%*%solve(tcrossprod(B)+L1*diag(k))
-    
+
     if (pos){
       if(i>=adaptive.iter && adaptive.frac>0){
         cutoffs=apply(Zraw,2, getT)
@@ -565,19 +565,19 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
         Z[Z<0]=0
       }#else
     }#if pos
-    
-    
-    
+
+
+
     #B update
     ######################################
     oldB=B
     #B=solve(crossprod(Z)+L2*diag(k))%*%(t(Z)%*%Y)
     left <- 2*crossprod(Z)+2*L2*diag(k)
     total <- 2*t(Z) %*% Y
-    
+
     B <- sylvester_pre(left, right.shur$U, right.shur$S, total)
-    
-    
+
+
     #update error
     ######################################
     Bdiff=sum((B-oldB)^2)/sum(B^2)
@@ -586,48 +586,48 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
     if(trace){
       message(paste0("iter",i, " errorY= ",erry<-round2(mean((Y-Z%*%B)^2)), ", Bdiff= ",round2(Bdiff), ", Bkappa=", round2(kappa(B))))
     }
-    
+
     #check for convergence
     if(i>52&&Bdiff>BdiffTrace[i-50]){
       BdiffCount=BdiffCount+1
     }else if(BdiffCount>1){
       BdiffCount=BdiffCount-1
-    }#else if 
-    
+    }#else if
+
     if(Bdiff<tol &&i>40){
       message(paste0("converged at  iteration ", i))
       break
     }#if
-    
+
     if( BdiffCount>5&&i>40){
       message(paste0("stopped at  iteration ", i, " Bdiff is not decreasing"))
       break
     }#if
-    
-    
+
+
     #stop early
     if (early_flag){
       if (i > 20){
         B.cor.res <- cor(t(B))
         B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
-        
+
         if (sum(B.cor.val>=thr)>1){
           return(list(flag = "Shrink"))
         }#if
       }#if i>20
-      
+
     }#if
-    
+
   }#for i
-  
-  
+
+
   #L4_adaptive
   ###########################################
   B.cor.res <- cor(t(B))
   B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
   #pheatmap::pheatmap(B.cor.res, display_numbers = T, fontsize = 15)
-  
-  
+
+
   #print(sum(B.cor.val>=thr))
   if (sum(B.cor.val>=thr)==1){
     flag <- "Done"
@@ -636,9 +636,9 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
   }else{
     flag <- "Explode"
   }#else
-  
 
-  return(list(flag = flag, B = B, Z =Z, Zraw = Zraw))  
+
+  return(list(flag = flag, B = B, Z =Z, Zraw = Zraw))
 }#md.default
 
 
@@ -647,50 +647,50 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
 
 
 manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NULL, shur0 = NULL, max.iter=200, tol=5e-6, trace=F,rseed=NULL, B=NULL, scale=1,  adaptive.frac=0.05, adaptive.iter=30, L4_adaptive =2, to_drop =T, pos = T, cor.thr = 0.8, save.complete = F, verbose = T){
-  
+
   pos.adj=3
   ng=nrow(Y)
   ns=ncol(Y)
-  
+
   if (to_drop){
     k <- k+1
-    
+
     if ( !is.null(B)){
-      
+
       if ((nrow(B)<k)){
         if (verbose){
-          message("Add random LV")  
+          message("Add random LV")
         }#if vebose
-        
+
         #set.seed(rseed)
         #B.base <- matrix(rnorm(k*ncol(B)), nrow =k, ncol = ncol(B) )
         B.base <- t(matrix(apply(B,2,mean), ncol = k, nrow = ncol(B)))
         B.base[1:nrow(B),] <- B
-        B <- B.base  
+        B <- B.base
       }#if nrow(B)<k
     }#!is.null B
   }#if to _drop
-  
+
   if (verbose){
-    message("****")  
+    message("****")
   }#if verbose
-  
-  
+
+
   if(is.null(svdres)){
-    
+
     if (verbose){
-      message("Computing SVD")  
+      message("Computing SVD")
     }#if verbose
-    
+
     set.seed(123)
-    svdres=rsvd(Y, k = k) 
-    
+    svdres=rsvd(Y, k = k)
+
     svdres=rotateSVD(svdres)
-    
+
     #  show(svdres$d[k])
   }#svdres
-  
-  
+
+
   #L1
   #######################################################
   if(is.null(L1)){
@@ -699,94 +699,94 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
       L1=L1/pos.adj
     }#if
   }#if is.null(L1)
-  
-  
+
+
   #L2
   #######################################################
   if(is.null(L2)){
     L2=svdres$d[k]*scale
   }#if is.null(L2)
-  
+
   #L1=svdres$d[k]/2*scale
   if (verbose){
     print(paste0("L1 is set to ",L1))
-    print(paste0("L2 is set to ",L2))  
+    print(paste0("L2 is set to ",L2))
   }#if verbose
-  
-  
-  
+
+
+
   #B
   #######################################################
   if(is.null(B)){
     #initialize B with svd
     if (verbose){
-      message("Init")  
+      message("Init")
     }#if verbose
-    
+
     B=t(svdres$v[1:ncol(Y), 1:k]%*%diag(sqrt(svdres$d[1:k])))
   }else{
     if (verbose){
-      message("B given")  
+      message("B given")
     }#if verbose
-    
+
   }#B initialization
-  
-  
+
+
   if (!is.null(rseed)) {
     if (verbose){
-      message("using random start")  
+      message("using random start")
     }#if verbose
-    
+
     set.seed(rseed)
     B = t(apply(B, 1, sample))
   }#is.null rseed
-  
-  
-  
+
+
+
   B0 <- B
   if (is.null(shur0)){
-    shur0 <- rcpp_shur(L)  
+    shur0 <- rcpp_shur(L)
   }else{
     if (verbose){
-      message("shur0 has benn set.")  
+      message("shur0 has benn set.")
     }#if verbose
-    
+
   }#else
-  
-  
+
+
   #updates: md.default
   #######################################################
-  
+
   #right <- L4*t(L)+L4*L
   #right <- 2*L4*L
   #right.shur <- rcpp_shur(right)
   right.shur <- shur0
   right.shur$S <- 2*L4*right.shur$S
   if (verbose){
-    message("Shur done")  
+    message("Shur done")
   }#if verbose
-  
-  
+
+
   md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = cor.thr)
-  
-  
+
+
   if (md.run$flag == "Explode"){
-    
+
     if (verbose){
-      message("Explode")  
+      message("Explode")
     }#if vebose
-    
-    
+
+
     L4_left <- L4
     L4_right <- L4*L4_adaptive
     L4_pointer <- L4_right
   }else if (md.run$flag =="Shrink"){
-    
+
     if (verbose){
-      message("Shrink")  
+      message("Shrink")
     }#if verbose
-    
-    
+
+
     L4_left <- L4/L4_adaptive
     L4_right <- L4
     L4_pointer <- L4_left
@@ -795,60 +795,60 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
     L4_left <- NULL
     L4_right <- NULL
   }#else
-  
+
   if (verbose){
-    cat(paste0(L4_pointer, " ", L4_left, " ", L4_right, "\n"))  
+    cat(paste0(L4_pointer, " ", L4_left, " ", L4_right, "\n"))
   }#if verbose
-  
-  
+
+
   while (md.run$flag != "Done"){
-    
+
     #right <- 2*L4_pointer*L
     #right.shur <- rcpp_shur(right)
     right.shur <- shur0
     right.shur$S <- 2*L4_pointer*right.shur$S
-    
+
     #if L4_left and L4_right is too close, then Done
     if (abs(L4_left-L4_right) < 0.1){
-      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = cor.thr, early_flag = F)  
+      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = cor.thr, early_flag = F)
       md.run$flag <- "Done"
     }else{
-      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = cor.thr, early_flag = T)  
+      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = cor.thr, early_flag = T)
     }#else
-    
+
 
     if (md.run$flag == "Explode"){
-      
+
       if (verbose){
-        message("Explode")  
+        message("Explode")
       }#if verbose
-      
+
        if (L4_pointer == L4_left){
-         L4_left <- L4_left 
+         L4_left <- L4_left
          L4_pointer <- (L4_left+L4_right)/2
          L4_right <- L4_right
-          
+
        }else if (L4_pointer < L4_right){
          L4_left <- L4_pointer
          L4_pointer <- (L4_pointer+L4_right)/2
          L4_right <- L4_right
-         
+
        }else if (L4_pointer == L4_right){
           L4_pointer <- L4_right*L4_adaptive
           L4_left <- L4_right
           L4_right <- L4_pointer
-       }#else if 
-      
+       }#else if
+
     }else if (md.run$flag == "Shrink"){
       if (verbose){
-        message("Shrink")  
+        message("Shrink")
       }#if verbose
-      
+
       if (L4_pointer == L4_left){
           L4_pointer <- L4_pointer/L4_adaptive
           L4_right <- L4_left
           L4_left <- L4_pointer
-          
+
       }else if (L4_pointer < L4_right){
           L4_right <- L4_pointer
           L4_pointer <- (L4_left+L4_pointer)/2
@@ -858,37 +858,37 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
          L4_pointer <- (L4_left+L4_right)/2
          L4_right <- L4_right
       }#else if
-      
-    }#else if 
-    
+
+    }#else if
+
     if (verbose){
       cat(paste0(L4_pointer, " ", L4_left, " ", L4_right, "\n"))
     }#if verbose
-    
+
   }#while
-  
-  
-  
+
+
+
     #md.run <- md.shrink(Y, B0, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol)
     #while (md.run$flag == "Shrink"){
     #  L4 <- L4/L4_adaptive
     #  print(L4)
     #  md.run <- md.shrink(Y, B0, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol)
     #}#while
-  
+
   #wrap around the output
   #######################################################
   B <- md.run$B
   Z <- md.run$Z
   Zraw <- md.run$Zraw
   Zproject=Z%*%solve(crossprod(Z)+L2*diag(k))
-  
+
   if (to_drop){
-    
+
     if (verbose){
-      message("drop")  
+      message("drop")
     }#if verbose
-    
+
     #eliminate the one with smaller variance
     cor.res <- cor(t(B))
     LV.var <- VarianceExplained(Y, Z, B, option = "simple", normalize = F)
@@ -901,33 +901,33 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
     #keep a record
     B0 <- B
     Z0 <- Z
-    
+
     #exclue LV.to_drop
     B <- B[-LV.to_drop,]
     Z <- Z[,-LV.to_drop]
     Zraw <- Zraw[,-LV.to_drop]
     Zproject <- Zproject[,-LV.to_drop]
     k <- k-1
-    
+
   }#to_drop
-  
+
   #assign names
   rownames(B)=colnames(Z)=paste("LV",1:k)
   rownames(Z) <- rownames(Y)
   colnames(B) <- colnames(Y)
-  
+
   if (save.complete){
     if (to_drop){
       return(list(B=B, Z=Z, Zraw=Zraw, Zproject=Zproject,L1=L1, L2=L2, L4 = L4_pointer, k = k, shur0 = shur0, right.shur = right.shur, Y= Y, L= L, LV.to_drop = LV.to_drop, B0 = B0, Z0 = Z0))
     }else{
       return(list(B=B, Z=Z, Zraw=Zraw, Zproject=Zproject,L1=L1, L2=L2, L4 = L4_pointer, k = k, shur0 = shur0, right.shur = right.shur, Y= Y, L= L))
     }#else
-    
+
   }else{
-    return(list(B=B, Z=Z, Zraw=Zraw, Zproject=Zproject,L1=L1, L2=L2, L4 = L4_pointer, k = k, shur0 = shur0, right.shur = right.shur))  
+    return(list(B=B, Z=Z, Zraw=Zraw, Zproject=Zproject,L1=L1, L2=L2, L4 = L4_pointer, k = k, shur0 = shur0, right.shur = right.shur))
   }#else
-  
-  
+
+
 }#manifoldDecomp_adaptive
 
 
@@ -942,37 +942,37 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
 
 #tSNE or Umap plot
 Cluster_2Dplot <- function(LVs, cluster.label = NULL, cluster.option = "kmeans", cluster.label.scale = F, num.of.cluster = NULL,option = "umap", random.seed = 1, pt.size = 2, verbose = T, umap.opt = 30, tsne.opt = 30){
-  
+
   message(paste0("Generate ", option, " plot."))
   set.seed(random.seed)
-  
+
   kmeans.input <- t(LVs)
   if (is.null(cluster.label)){
-    
+
     if (cluster.label.scale){
       kmeans.input <- scale(t(LVs))
     }#if
-    
+
     if (is.null(num.of.cluster)){
       stop("num.of.cluster is unknown.")
     }#if
-    
+
     if (cluster.option == "kmeans"){
       km.res <- kmeans(kmeans.input, centers = num.of.cluster, nstart = 25)
-      cluster.label <- as.character(km.res$cluster)  
+      cluster.label <- as.character(km.res$cluster)
     }else if (cluster.option == "leiden"){
-      
-    }#else if 
-    
+
+    }#else if
+
   }#if is.null(cluster.label)
-  
-  
+
+
   #visualization
   if (option == "umap"){
     #umap.proj <- uwot::umap(kmeans.input, n_neighbors = 30, learning_rate = 0.5, init = "random", verbose = F, n_threads = 4, pca = NULL, n_epochs = 1000)
     umap.proj <- uwot::umap(kmeans.input, n_neighbors = umap.opt, learning_rate = 0.5, init = "random", verbose = F, n_threads = 4, pca = NULL, n_epochs = 1000)
     dat <- data.frame(x = umap.proj[,1], y = umap.proj[,2], Cluster = as.character(cluster.label))
-  
+
   }else if (option == "tsne"){
     #rtsne.proj <- Rtsne::Rtsne(kmeans.input, perplexity = 30, verbose = F, pca = F)
     rtsne.proj <- Rtsne::Rtsne(kmeans.input, perplexity = tsne.opt, verbose = F, pca = F)
@@ -981,14 +981,14 @@ Cluster_2Dplot <- function(LVs, cluster.label = NULL, cluster.option = "kmeans",
     svd.res  <- svd(t(scale(kmeans.input)), nu = 2, nv = 2)
     dat <- data.frame(x = svd.res$v[,1], y = svd.res$v[,2], Cluster = as.character(cluster.label))
   }#else if
-  
+
   rownames(dat) <- rownames(kmeans.input)
   if (verbose){
-    ggplot(dat,aes(x=x,y=y, color = Cluster))+geom_point(size = pt.size)+theme_pubr(base_size = 20)  
+    ggplot(dat,aes(x=x,y=y, color = Cluster))+geom_point(size = pt.size)+theme_pubr(base_size = 20)
   }else{
     return(dat)
   }#else
-  
+
 }#Cluster_2Dplot
 
 
@@ -1000,36 +1000,36 @@ Cluster_2Dplot <- function(LVs, cluster.label = NULL, cluster.option = "kmeans",
 #http://www.cs.cmu.edu/afs/cs/user/dwoodruf/www/teaching/15859-fall21/lec4.pdf
 CountSketch <- function(nd, ns, random.seed = 1){
   set.seed(random.seed)
-  
+
   x <- rep(NA, ns)
   val <- rep(NA, ns)
   for (ii in 1:ns){
     x[ii] <- sample(1:nd, size = 1)
-    val[ii] <- sample(c(-1,1), size = 1) 
+    val[ii] <- sample(c(-1,1), size = 1)
   }#ii
-  
+
   S <- Matrix::sparseMatrix(i = x, j = 1:ns, x = val)
-  
+
   return(S)
 }#CountSketch
 
 
 epsilon_JLT <- function(nr, ns, epsilon = 0.1, option = "iid", random.seed = 1, sparse = T){
   set.seed(random.seed)
-  
+
   #https://arxiv.org/pdf/1109.3843.pdf
   if (option == "iid"){
     nrow <- nr
     ncol <- round(log(ns)/epsilon^2)
-    
+
     message(paste0("d is set to be ", ncol))
     sample.template <- c(0, sqrt(3/nr), -sqrt(3/nr))
     sample.prob <- c(2/3, 1/6, 1/6)
-    
+
     eJLT <- matrix(sample(sample.template, prob = sample.prob, size = nrow*ncol, replace = T), nrow = nrow, ncol = ncol)
-    
+
   }#if
-  
+
   if (sparse){
     eJLT <- Matrix::Matrix(eJLT, sparse = T)
   }#if
@@ -1044,31 +1044,31 @@ LeverageScores <- function(X, nsketch, random.seed = 1, epsilon = 0.1){
   #rotate the matrix to make cells as rows
   A <- t(X)
   S <- CountSketch(nsketch, nrow(A), random.seed = random.seed)
-  
+
   #perform QR decomposition
   SA <- S%*%A
   QR.res <- qr(SA, LAPACK = T)
   R_inv <- qr.R(QR.res)
-  
+
   #numerical adjustment: filter based on the rank
   include.index <- which(abs(diag(R_inv)) > 1e-7)
-  
+
   R_inv_trunc <- R_inv[include.index, ]
   R_solve_trunc <- backsolve(R_inv_trunc, x = diag(ncol(R_inv_trunc)), k = nrow(R_inv_trunc), transpose = T) #5000*12481
   R <- t(R_solve_trunc)
-  
+
   #generate a G matrix
   #G <- epsilon_JLT(ncol(A), nrow(A))
   G_dense <- epsilon_JLT(ncol(R), nrow(A), epsilon = epsilon, sparse = F, random.seed = random.seed)
-  
+
   #ptm <- proc.time()
   RG1 <- eigenMapMatMult(R, G_dense)
   #print(proc.time()-ptm)
   ARG1 <- eigenMapMatMult(A, RG1)
   #print(proc.time()-ptm)
   #8.98s
-  
-  
+
+
   ARG.2 <- ARG1^2
   ls <- apply(ARG.2,1,sum)
   return(ls)
@@ -1079,43 +1079,43 @@ LeverageScores <- function(X, nsketch, random.seed = 1, epsilon = 0.1){
 
 #Deprecated version: stop before LV collapse (upper.tri(correlation) > 0.5)
 md.shrink <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol){
-  
+
   Bdiff=Inf
   BdiffTrace=double()
   BdiffCount=0
-  
+
   getT=function(x){-quantile(x[x<0], adaptive.frac)}
   round2=function(x){signif(x,4)}
-  
+
   flag <- "Done"
-  
-  
+
+
   for ( i in 1:max.iter){
     #Z update
     ######################################
     Zraw=Z=(Y%*%t(B))%*%solve(tcrossprod(B)+L1*diag(k))
     if(i>=adaptive.iter && adaptive.frac>0){
-      
+
       cutoffs=apply(Zraw,2, getT)
-      
+
       for(j in 1:ncol(Z)){
         Z[Z[,j]<cutoffs[j],j]=0
       }#for j
     }else{
       Z[Z<0]=0
     }#else
-    
-    
+
+
     #B update
     ######################################
     oldB=B
     #B=solve(crossprod(Z)+L2*diag(k))%*%(t(Z)%*%Y)
     left <- 2*crossprod(Z)+2*L2*diag(k)
     total <- 2*t(Z) %*% Y
-    
+
     B <- sylvester_pre(left, right.shur$U, right.shur$S, total)
-    
-    
+
+
     #update error
     ######################################
     Bdiff=sum((B-oldB)^2)/sum(B^2)
@@ -1124,41 +1124,41 @@ md.shrink <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, 
     if(trace){
       message(paste0("iter",i, " errorY= ",erry<-round2(mean((Y-Z%*%B)^2)), ", Bdiff= ",round2(Bdiff), ", Bkappa=", round2(kappa(B))))
     }
-    
+
     #check for convergence
     if(i>52&&Bdiff>BdiffTrace[i-50]){
       BdiffCount=BdiffCount+1
     }else if(BdiffCount>1){
       BdiffCount=BdiffCount-1
-    }#else if 
-    
+    }#else if
+
     if(Bdiff<tol &&i>40){
       message(paste0("converged at  iteration ", i))
       break
     }#if
-    
+
     if( BdiffCount>5&&i>40){
       message(paste0("stopped at  iteration ", i, " Bdiff is not decreasing"))
       break
     }#if
-    
+
     #L4_adaptive
     ###########################################
     B.cor.res <- cor(t(B))
     B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
-    
-    
+
+
     if ( (max(B.cor.val) > 0.5) & (i > 20)){
       if (L4 > min(L1, L2)){
         flag <- "Shrink"
         cat(paste0("i: ", i, "\n"))
-        break  
+        break
       }#L4
     }#if
-    
+
   }#for i
-  
-  
-  return(list(flag = flag, B = B, Z =Z, Zraw = Zraw))  
+
+
+  return(list(flag = flag, B = B, Z =Z, Zraw = Zraw))
 }#md.shrink
 

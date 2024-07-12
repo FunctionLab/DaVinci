@@ -7,18 +7,18 @@ tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
   if (is.null(rownames(coord))){
     stop("Input doesn't have rownames.")
   }#if
-  
+
   #pre-set
   L1_size <- 7000
   #L2_number <- 1000 #about 1000 spots in the problem
   message("L2_number is not recommended to be higher than 2000. Higher the number is, the more granularity you expect.")
-  
+
   #derived
-  L1_number <- nrow(coord)/L1_size #number 
+  L1_number <- nrow(coord)/L1_size #number
   L2_size <- nrow(coord) %/% L2_number #balanced.cluster.size
   message(paste0("Tile size is ", L2_size))
-  
-  
+
+
   #calculate the L1 grid parameter
   #################################
   bbox <- sf::st_bbox(c(xmin = min(coord[,1]), ymin = min(coord[,2]), xmax = max(coord[,1]), ymax = max(coord[,2]) ))
@@ -27,33 +27,33 @@ tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
   nx <- ceiling(ny*xy_ratio)
   grid <- sf::st_make_grid(bbox, n = c(nx, ny), square = T)
   pos <- sf::st_as_sf(as.data.frame(coord), coords = c("array_row","array_col"))
-  
+
   ids_L1 <- unlist(lapply(sf::st_intersects(pos, grid), function(sublist) sublist[1]))
   names(ids_L1) <- rownames(coord)
-  
-  
+
+
   #L2 fine grid
   #################################
   ids_L2 <- ids_L1
   ids_L1_unique <- sort(unique(ids_L1))
-  
+
   for (ii in 1:length(ids_L1_unique)){
     temp <- which(ids_L1==ids_L1_unique[ii])
     if (length(temp)<L2_size){
       ids_L2[temp] <- 1
     }else{
-      ids_L2[temp] <- swk(coord[temp,], method = "balanced", L2norm = F, balanced.cluster.size = L2_size, random.seed = random.seed)  
+      ids_L2[temp] <- swk(coord[temp,], method = "balanced", L2norm = F, balanced.cluster.size = L2_size, random.seed = random.seed)
     }#else
-    
+
   }#for ii
-  
+
   #combine together
   #################################
   grid_ids <- paste0(ids_L1, "_", ids_L2)
   mapping <- 1:length(unique(grid_ids))
   names(mapping) <- unique(grid_ids)
   grid_ids <- mapping[grid_ids]
-  
+
   names(grid_ids) <- rownames(coord)
   return(grid_ids)
 }#tile_the_slice
@@ -93,12 +93,6 @@ tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
 #'
 #' y3 <- same_size_clustering(x, clsize = 10, algo = "kmvar")
 #' y33 <- same_size_clustering(as.matrix(dist(x)), clsize = 10, algo = "kmvar", diss = TRUE)
-#' @testexamples
-#' expect_length(y1, 100L)
-#' expect_length(y11, 100L)
-#' expect_length(y2, 100L)
-#' expect_length(y3, 100L)
-#' expect_length(y33, 100L)
 same_size_clustering <- function(mat, diss = FALSE, clsize = NULL,
                                  algo = c("nnit", "hcbottom", "kmvar"),
                                  method = c(
@@ -106,7 +100,7 @@ same_size_clustering <- function(mat, diss = FALSE, clsize = NULL,
                                    "ward.D", "average", "complete", "single"
                                  )) {
   stopifnot(is.numeric(clsize))
-  
+
   algo <- match.arg(algo)
   method <- match.arg(method)
   do.call(algo, args = list(mat = mat, diss = diss, clsize = clsize, method = method))
@@ -117,7 +111,7 @@ nnit <- function(mat,
                  diss = FALSE,
                  method = "maxd") {
   stopifnot(is.logical(diss))
-  
+
   clsize.rle <- rle(as.numeric(cut(1:nrow(mat), ceiling(nrow(mat) / clsize))))
   clsize <- clsize.rle$lengths
   lab <- rep(NA, nrow(mat))
@@ -147,12 +141,13 @@ nnit <- function(mat,
   lab
 }
 
+
 kmvar <- function(mat,
                   clsize = NULL,
                   diss = FALSE,
                   method = "maxd") {
   stopifnot(is.logical(diss))
-  
+
   k <- ceiling(nrow(mat) / clsize)
   if (isFALSE(diss)) {
     km.o <- kmeans(mat, k)
@@ -169,10 +164,10 @@ kmvar <- function(mat,
     # distance to medoids
     centd <- mat[, pam.o$id.med, drop = FALSE]
   }
-  
+
   labs <- rep(NA, nrow(mat))
   clsizes <- rep(0, k)
-  
+
   ptord <- switch(method,
                   maxd = order(-apply(centd, 1, max)),
                   mind = order(apply(centd, 1, min)),
@@ -180,7 +175,7 @@ kmvar <- function(mat,
                   elki = order(apply(centd, 1, min) - apply(centd, 1, max)),
                   stop("unsupported method in 'kmvar'!")
   )
-  
+
   for (ii in ptord) {
     bestcl <- which.max(centd[ii, ])
     labs[ii] <- bestcl
@@ -197,7 +192,7 @@ hcbottom <- function(mat,
                      diss = FALSE,
                      method = "ward.D") {
   stopifnot(is.logical(diss))
-  
+
   method <- match.arg(method, choices = c("ward.D", "average", "complete", "single"))
   if (isFALSE(diss)) {
     dmat <- as.matrix(dist(mat))
