@@ -9,7 +9,8 @@ require(emojifont) #recommended but not required
 
 
 
-
+#' Automatically tune the number of latent variables
+#' @export
 
 AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.arg.list=exp(seq(log(100), log(10), length.out = length(k.arg.list))), frac.impute=0.1, frac.seed = 1 ){
   #create the dataset
