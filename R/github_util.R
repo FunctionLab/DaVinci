@@ -41,6 +41,8 @@ normalize_barcode_sums_to_median <- function(gbm){
 
 
 
+#' Normalize the spatial RNA-seq
+#' @export
 gene_normalization <- function(gene.exp, frac.thr = 0.95, MT.remove = T, median.norm = T){
   #use_gene <- which(apply(gene.exp==0,1,sum)/ncol(gene.exp) < frac.thr)
 
@@ -86,6 +88,9 @@ gene_normalization <- function(gene.exp, frac.thr = 0.95, MT.remove = T, median.
 
 #https://satijalab.org/seurat/archive/v3.1/atacseq_integration_vignette
 #directly based on the signac/R/preprocessing.R and https://stuartlab.org/signac/reference/runtfidf
+
+#' Normalize the spatial ATAC-seq
+#' @export 
 LSI_normalization <- function(atac, method = "1", scale.factor = 1e5, peak.filter.thr = NULL){
 
   #filter out no count peaks
@@ -149,6 +154,8 @@ LSI_normalization <- function(atac, method = "1", scale.factor = 1e5, peak.filte
 
 
 #wrapper to combine everything
+#' Wrapper to prepare the input
+#' @export
 preprocess <- function(mat, coor, type = "rna", graph.opt = "Tri.mesh", frac.thr = 0.95, MT.remove = T, median.norm = T, LSI.method = "3",  LSI.scale.factor = 1e5, LSI.peak.filter.thr = NULL){
 
   #make sure aligned
@@ -199,7 +206,8 @@ preprocess <- function(mat, coor, type = "rna", graph.opt = "Tri.mesh", frac.thr
 
 
 
-
+#' Generate the Laplacian input
+#' @export
 L_generate <- function(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL){
 
   if (is.null(rownames(coor))){
@@ -296,6 +304,9 @@ L_generate <- function(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL)
 
 
 
+
+#' Main function with a fixed L4 parameter
+#' @export
 manifoldDecomp=function(Y, L, k,svdres=NULL, L1=NULL, L2=NULL, L4 = NULL,max.iter=200, tol=5e-6, trace=F,rseed=NULL, B=NULL, scale=1,  adaptive.frac=0.05, adaptive.iter=30){
 
   round2=function(x){signif(x,4)}
@@ -439,11 +450,8 @@ manifoldDecomp=function(Y, L, k,svdres=NULL, L1=NULL, L2=NULL, L4 = NULL,max.ite
 
 
 
-normF <- function(x){
-  return(sqrt(sum(x^2)))
-}#normF
-
-
+#' Variance explained by latent variables
+#' @export
 VarianceExplained <- function(Y, Z, B, option = "simple", normalize = F){
   if (option == "simpleboth"){
     if (normalize){
@@ -484,6 +492,8 @@ VarianceExplained <- function(Y, Z, B, option = "simple", normalize = F){
   names(res) <- rownames(B)
   return(res)
 }#VarianceExplained
+
+
 
 
 recon.error <- function(Y, Y.re, index){

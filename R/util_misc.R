@@ -349,169 +349,6 @@ moranI_all <- function(x, L){
 
 
 
-#radius based, nearest neighbor based
-#continuous smoothing or voting
-#nearest neighbor: label imputation
-#nearest neighbor: value smoothing
-refinement <- function(y, coor, neighbor.option="KNN", neighbor.arg = 6, radius.arg = 10, tasks = "discrete", self = F){
-
-  #get the neighbor index per spot
-  #neighbor.index <- list()
-
-  if (neighbor.option == "KNN"){
-    #call nearest neighbors
-    snn.res <- Seurat::FindNeighbors(coor, k.param = neighbor.arg+1, return.neighbor = F, compute.SNN = T, verbose = F)
-    neighbor.mat <- snn.res$nn
-    diag(neighbor.mat) <- 0
-
-    neighbor.index <- apply(neighbor.mat, 1, function(x){which(x!=0)})
-    neighbor.index <- lapply(seq_len(ncol(neighbor.index)), function(i) neighbor.index[,i])
-
-  }else if (neighbor.option == "Radius"){
-    #decide neighbors based on the radius
-    coor.dist <- as.matrix(dist(coor))
-    diag(coor.dist) <- Inf
-
-    neighbor.index <- apply(coor.dist, 1, function(x){which(x < radius.opt)})
-  }#else if
-
-
-  if (tasks == "discrete"){
-
-    y.table <- lapply(neighbor.index, function(x){table(y[x])})
-    y.smooth <- unlist( lapply(y.table, function(x){ if (max(x)>neighbor.arg/2){names(which.max(x))}else{NA} } )  )
-    y.smooth[is.na(y.smooth)] <- y[is.na(y.smooth)]
-
-  }else if (tasks == "continuous"){
-
-    if (self){
-      y.smooth <- (unlist(lapply(neighbor.index, function(x){mean(y[x])}))+y)/2
-    }else{
-      y.smooth <- unlist(lapply(neighbor.index, function(x){mean(y[x])}))
-    }#else
-
-  }#else if
-
-  return(y.smooth)
-
-}#refinement
-
-
-
-
-
-refinement.batch <- function(data, coor, neighbor.option="KNN", neighbor.arg = 6, radius.arg = 10, tasks = "discrete", self = F){
-  if (ncol(data) < nrow(data)){
-    data <- t(data)
-  }#if
-
-  for (ii in 1:nrow(data)){
-    data[ii, ] <- refinement(data[ii,], coor = coor, neighbor.option = neighbor.option, neighbor.arg = neighbor.arg, radius.arg =radius.arg, tasks = tasks, self = self)
-  }#for ii
-
-  return(data)
-}#refinement.batch
-
-
-
-
-
-LV.selection <- function(LVs, L, cor.thr = -0.7, moran.filter = T, return.moran = F){
-
-  if (return.moran){
-     moran.filter <- T
-  }#return.moran
-
-  exclude.index <- c(1)
-
-  if (ncol(LVs) > nrow(LVs)){
-    LVs <- t(LVs)
-  }#if
-
-  cor.res <- cor(LVs)
-
-  #remove LV1 and complementary ones
-  #########################################################
-  exclude.index <- c(exclude.index, which(cor.res[,1] < cor.thr) )
-
-  #remove others based on the moranI
-  #sort and select the biggest gap as the cutoff
-  #########################################################
-  if (moran.filter){
-    moran.val <- moranI_all(LVs, L)
-    exclude.index <- c(exclude.index, which(moran.val < moran.val[1]))
-  }#if
-
-
-  #return the index of LVs after filtering
-  include.index <- setdiff(1:ncol(LVs), exclude.index)
-
-
-  if (return.moran){
-    return(list(include.index = include.index, moran.val = moran.val))
-  }else{
-    return(include.index)
-  }#else
-
-
-}#LV.selection
-
-
-
-
-
-
-
-staining <- function(x, full = F){
-  mclust.res <- Mclust(x, G=2, modelNames = "E", verbose = F)
-  if (full){
-    return(mclust.res)
-  }else{
-    return(as.character(mclust.res$classification))
-  }#else
-}#staining
-
-
-
-staining_plot_all <- function(dat, stain, pt.size=1, ratio = 1, use.myratio=F){
-
-  if (use.myratio){
-    coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
-    myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
-    message(paste0("The aspect ratio is ", myratio))
-
-    ratio <- myratio
-  }#if
-
-
-  #dat.test <- data.frame(x=dat@images$slice1@coordinates$row, y = dat@images$slice1@coordinates$col, cluster = cluster.label)
-  #flip the coordinate
-
-  if (nrow(stain) > ncol(stain)){
-    stain <- t(stain)
-  }#if
-
-  plot.list <- list()
-  message(paste0("Total number of panels is ", nrow(stain)))
-  for (ii in 1:nrow(stain)){
-    dat.test <- data.frame(x=dat@images[[1]]@coordinates$imagecol, y = dat@images[[1]]@coordinates$imagerow, cluster = stain[ii,])
-    plot.list[[ii]] <- ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+colorPalette(dat.test$cluster, fill = F)+ggtitle(paste0("LV ", ii))+theme(plot.title = element_text(size= 20, face = "bold"))
-  }#for ii
-
-  ggarrange(plotlist = plot.list)
-}#staining_plot_all
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #use swk
@@ -565,6 +402,11 @@ split_chunk <- function(x, cluster.size, random.seed = 1, reference_set = NULL, 
 
 
 
+mean.diff <- function(x, index1, index2){
+  return( wilcox.test(x[index1], x[index2])$p.value )
+}#mean.diff
+
+
 
 
 
@@ -574,6 +416,8 @@ split_chunk <- function(x, cluster.size, random.seed = 1, reference_set = NULL, 
 #reference_set: spot-by-LV/xandy for clustering purpose
 #leiden, mclust, balanced set clustering
 
+#' Differential analysis
+#' @export
 pseudo.default <- function(data, one_hot_encode, batch = NULL, num.of.pseudo, verbose = T, reference_set = NULL, reference_set_opt = list(method="mclust", L2norm = T, ld.resolution=1, ld.num.neighbors=20, ld.NN="SNN", mclust.model = "EEE")){
 
   if (ncol(data)!=length(one_hot_encode)){
@@ -647,93 +491,29 @@ pseudo.default <- function(data, one_hot_encode, batch = NULL, num.of.pseudo, ve
 
 
 
-
-
-
-mean.diff <- function(x, index1, index2){
-  return( wilcox.test(x[index1], x[index2])$p.value )
-}#mean.diff
-
-
-
-
-
-
-gene.support <- function(Y, LVs, meta.number = 1 , batch = NULL, thr = 0.05, full = F, verbose = T){
-
-  if (nrow(LVs)>ncol(LVs)){
-    LVs <- t(LVs)
-  }#if
-
-  res <- c()
-  p.val.list <- list()
-  q.val.list <- list()
-
-  for (ii in 1:nrow(LVs)){
-
-    #discretize the LV
-    LV.binarization <- staining(LVs[ii,])
-    p.val <- pseudo.default(Y, one_hot_encode = LV.binarization, batch = batch, num.of.pseudo = meta.number, verbose = verbose)
-
-
-    #index1 <- which(LV.binarization=="1")
-    #index2 <- setdiff(1:ncol(LVs), index1)
-
-    #simple test and p value correction
-    #p.val <- apply(Y,1,mean.diff, index1 = index1, index2 = index2)
-    p.val.list[[ii]] <- p.val
-    q.val.list[[ii]] <- p.adjust(p.val)
-
-    #number of genes left
-    res <- c(res, sum(q.val.list[[ii]]<thr))
-
-
-  }#for ii
-
-  if (full){
-    return(list(res=res, p.val.list = p.val.list, q.val.list=q.val.list))
-  }else{
-    return(res)
-  }#else
-
-}#gene.support
-
-
-
-
-
-jacard.index <- function(LVs){
-
-  if (nrow(LVs)>ncol(LVs)){
-    LVs <- t(LVs)
-  }#if
-
-  LV.binarization <- t(apply(LVs, 1, staining))
-
-  #sanity check
-  for (ii in 1:nrow(LV.binarization)){
-    temp1 <- mean(LVs[ii, which(LV.binarization[ii,]=="1")])
-    temp2 <- mean(LVs[ii, which(LV.binarization[ii,]=="2")])
-    if (temp1>temp2){
-      print(ii)
-    }#if
-  }#for ii
-
-  LV.index <- apply(LV.binarization,1,function(x){which(x=="2")})
-
-  res <- matrix(NA, nrow(LVs), nrow(LVs))
-  rownames(res) <- paste0("LV ", 1:nrow(LVs))
-  colnames(res) <- paste0("LV ", 1:nrow(LVs))
-  for (ii in 1:nrow(LV.binarization)){
-    for (jj in ii:nrow(LV.binarization)){
-      res[ii,jj] <- length( intersect(LV.index[[ii]], LV.index[[jj]] ) )/length(union(LV.index[[ii]], LV.index[[jj]] ))
-      res[jj,ii] <- res[ii,jj]
-    }#for jj
-  }#for ii
-
-  return(res)
-}#jacard.index
-
-
-
-
+#' Pathway enrichment analysis via EnrichR
+#' @export
+enrich_visual <- function(gene.list, gene.all, dbs = c("HuBMAP_ASCTplusB_augmented_2022"), number.of.top=10, pathway = "HuBMAP_ASCTplusB_augmented_2022"){
+  
+  enrich.res <- enrichr(gene.list, databases = dbs, background = gene.all)
+  
+  dat.to_plot <- enrich.res[[pathway]]
+  dat.to_plot <- dat.to_plot[order(dat.to_plot$Adjusted.P.value,decreasing = F)[1:number.of.top],]
+  dat.to_plot$FDR <- -log10(dat.to_plot$Adjusted.P.value)
+  dat.to_plot$Term <- stringr::str_wrap(dat.to_plot$Term, width = 50)
+  
+  p <- ggdotchart(dat.to_plot, x = "Term", y = "FDR",
+                  color = "#D55E00",
+                  palette = c(  "#DDDDDD","#D55E00"),
+                  sorting = "descending",
+                  add = "segments",
+                  add.params = list(color = "#DDDDDD", size = 2),
+                  dot.size = 10,
+                  label = NULL,
+                  font.label = list(color = "white", size = 9,vjust = 0.5),
+                  ggtheme = theme_pubr(base_size = 15),
+                  rotate=T
+  )+geom_hline(yintercept = -log10(0.05), linetype = 2, color = "black")+xlab("")+ylab("-log10(FDR)")+theme(legend.position = "none", axis.text.x = element_text(size = 20), axis.title.y = element_text(face = "bold", size= 30))
+  
+  p
+}#enrich_visual

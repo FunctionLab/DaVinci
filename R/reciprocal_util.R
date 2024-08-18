@@ -1,58 +1,3 @@
-L2Norm <- function(mat, MARGIN = 1){
-  normalized <- sweep(
-    x = mat,
-    MARGIN = MARGIN,
-    STATS = apply(
-      X = mat,
-      MARGIN = MARGIN,
-      FUN = function(x){
-        sqrt(x = sum(x ^ 2))
-      }
-    ),
-    FUN = "/"
-  )
-  normalized[!is.finite(x = normalized)] <- 0
-  return(normalized)
-}#L2Norm
-
-
-
-
-cor.intersect <- function(mat1, mat2, top.genes=NULL){
-  
-  gene.intersect <- intersect(rownames(mat1), rownames(mat2))
-  mat1 <- mat1[gene.intersect,]
-  mat2 <- mat2[gene.intersect,]
-  
-  if (is.null(top.genes)){
-    cor.res <- cor(mat1, mat2)  
-  }else{
-    cor.res <- matrix(NA, nrow = ncol(mat1), ncol = ncol(mat2))
-    top.index1 <- list()
-    top.index2 <- list()
-    for (i in 1:ncol(mat1)){
-      top.index1[[i]] <- names(sort(mat1[,i], decreasing = T)[1:top.genes])
-    }#for i
-    
-    for (i in 1:ncol(mat2)){
-      top.index2[[i]] <- names(sort(mat2[,i], decreasing = T)[1:top.genes])
-    }#for i
-    
-    for (i in 1:ncol(mat1)){
-      for (j in 1:ncol(mat2)){
-        temp <- union(top.index1[[i]], top.index2[[j]])
-        cor.res[i,j] <- cor(mat1[temp, i], mat2[temp, j])
-      }#for j
-    }#for i
-    
-  }#else
-  
-  rownames(cor.res) <- paste0("1_", 1:ncol(mat1))
-  colnames(cor.res) <- paste0("2_", 1:ncol(mat2))
-  return(cor.res)
-}#cor.intersect
-
-
 
 
 GenePlot <- function(dat, features, pt.size = 2, ratio = 1, use.myratio = F){
@@ -123,6 +68,8 @@ p.intersect <- function(x){
 
 
 
+#' apply the existing integration result on the new dataset
+#' @export
 reciprocal_with_Z <- function(Y.list, Lap, ICAp.res.list, ICAp.res.list.reference, Z.names){
   
   num.of.slice <- length(Y.list)
@@ -175,6 +122,8 @@ reciprocal_with_Z <- function(Y.list, Lap, ICAp.res.list, ICAp.res.list.referenc
 
 
 #construct the B.list and global LVs with different options
+#' Finalize the integration by filtering out duplicated LVs based on similarity and strategy
+#' @export
 reciprocal_deco <- function(proj, option = "L2norm", LVs.filter = F, LVs.filter.thr = 0.9, mod = "all"){
   
   num.of.slice <- length(proj)

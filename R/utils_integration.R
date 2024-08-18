@@ -5,7 +5,8 @@
 
 
 
-
+#' Integrate two modalities
+#' @export
 BiModalIntegration <- function(modal.1, modal.2, mat.1=modal.1, mat.2=modal.2, n_neighbors = 20, n_neighbors_large = 200, sigma.idx = n_neighbors, snn.far.nn = T, L2norm = T, sd.scale = 1, cross.contant = 1e-4, prune.SNN = 0, kernel.power = 1){
   
   #L2 normalization
@@ -185,72 +186,6 @@ BiModalIntegration <- function(modal.1, modal.2, mat.1=modal.1, mat.2=modal.2, n
   return(list(weight.1 = weight.1, weight.2 = weight.2, weighted.index = weighted.index, weighted.dist = weighted.dist, knn.mat = knn.mat, snn.mat = snn.mat))
   
 }#BiModalIntegration
-
-
-
-
-
-
-
-BiModalIntegration.swk <- function(integration.res, ld.resolution = 0.5, ld.NN = "SNN", random.seed = 1){
-  
-  set.seed(random.seed)
-  
-  if (ld.NN =="SNN"){
-    message("SNN")
-    leiden.input <- integration.res$snn.mat
-    
-  }else if (ld.NN=="SNN.binary"){
-    message("SNN.binary")
-    leiden.input <- integration.res$snn.mat
-    leiden.input[leiden.input!=0] <- 1
-    
-  }else if (ld.NN=="knn"){
-    message("kNN")
-    leiden.input.index <- integration.res$knn.mat
-    
-    #assign the weighted distances
-    leiden.input <- Matrix::sparseMatrix(
-      i = rep(1:nrow(integration.res$weighted.index), each = ncol(integration.res$weighted.index)),
-      j = c(t(integration.res$weighted.index)),
-      x = c(t(integration.res$weighted.dist)),
-      dims = c(nrow(leiden.input.index), ncol(leiden.input.index))
-    )#knn.mat
-    leiden.input <- as.matrix(leiden.input)
-    
-    #apply gaussian kernel to convert to similarity score
-    sigma <- 1
-    leiden.input <- exp(-leiden.input^2/(2*sigma^2))
-    leiden.input[which(as.matrix(leiden.input.index)==0)] <- 0
-    
-  }else if (ld.NN=="knn.binary"){
-    message("kNN.binary")
-    leiden.input <- integration.res$knn.mat
-  }#else if
-  
-  partition <- leiden::leiden(leiden.input, resolution_parameter = ld.resolution)
-
-  
-  #all(names(integration.res$weight.1)==names(integration.res$weight.2))
-  #assign names
-  names(partition) <- names(integration.res$weight.1)
-  
-  if (is.null(partition)){
-    stop("Number of unique clusters is 0")
-  }else{
-    print(paste0("Number of unique clusters is ", length(unique(partition))))
-    
-    return(partition)
-  }#else
-  
-}#BiModalIntegration.swk
-
-
-
-
-
-
-
 
 
 

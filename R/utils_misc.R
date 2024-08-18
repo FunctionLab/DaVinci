@@ -139,7 +139,7 @@ nnit <- function(mat,
     lab[which(is.na(lab))] <- cpt
   }
   lab
-}
+}#same_size_clustering
 
 
 kmvar <- function(mat,
@@ -185,7 +185,8 @@ kmvar <- function(mat,
     }
   }
   return(labs)
-}
+}#kmvar
+
 
 hcbottom <- function(mat,
                      clsize = NULL,
@@ -219,7 +220,7 @@ hcbottom <- function(mat,
   }
   lab[is.na(lab)] <- cpt
   lab
-}
+}#hcbottom
 
 
 

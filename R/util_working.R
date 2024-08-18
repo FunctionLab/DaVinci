@@ -11,7 +11,6 @@ require(emojifont) #recommended but not required
 
 #' Automatically tune the number of latent variables
 #' @export
-
 AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.arg.list=exp(seq(log(100), log(10), length.out = length(k.arg.list))), frac.impute=0.1, frac.seed = 1 ){
   #create the dataset
   nonzero.index <- which(gene.exp!=0)
@@ -66,7 +65,8 @@ AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.
 
 
 
-
+#' Return the ARI and NMI values of clusters
+#' @export
 ClusterMetric <- function(x, y){
     include.index <- which(!is.na(x) & !is.na(y))
     message(paste0("ARI: ", aricode::ARI(x[include.index], y[include.index])))
@@ -105,6 +105,8 @@ unicode.convert <- function(x){
 
 
 #https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
+#' Return the color palette given cluster vector
+#' @export
 colorPalette <- function(partition, fill = T){
   num.of.clusters <- length(unique(partition))
   val.names <- sort(as.character(1:num.of.clusters))
@@ -130,6 +132,79 @@ colorPalette <- function(partition, fill = T){
 
 
 
+
+
+#caveat: cluster may be not the real cluster: Seurat treat cluster as
+#' Plot clusters on top of Seurat object
+#' @export
+ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio = F, cluster.highlight = NULL, image.alpha = 1){
+  dat.tmp <- dat
+
+  #coord <- Seurat::GetTissueCoordinates(object = dat@images$slice1)
+
+  if (use.myratio){
+    coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
+    myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
+    message(paste0("The aspect ratio is ", myratio))
+
+    ratio <- myratio
+  }#if
+
+  dat.tmp@meta.data$Cluster <- cluster.label
+  if (is.null(cluster.highlight)){
+    SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
+  }else{
+    SpatialPlot(dat.tmp,  pt.size.factor = pt.size, cells.highlight = rownames(dat.tmp@meta.data)[dat.tmp$Cluster==cluster.highlight], cols.highlight = c("red", alpha("gray10", 0)),alpha = NULL, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
+  }#else
+
+}#ClusterPlot
+
+
+
+
+#' Plot clusters on top of Seurat object, no background image
+#' @export
+ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio = 1, use.myratio=F, label.on = F, cluster.highlight = NULL){
+
+  if (use.myratio){
+    coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
+    myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
+    message(paste0("The aspect ratio is ", myratio))
+
+    ratio <- myratio
+  }#if
+
+  #dat.test <- data.frame(x=dat@images$slice1@coordinates$row, y = dat@images$slice1@coordinates$col, cluster = cluster.label)
+  #flip the coordinate
+  dat.test <- data.frame(x=dat@images[[1]]@coordinates$imagecol, y = dat@images[[1]]@coordinates$imagerow, cluster = cluster.label)
+
+  if (is.null(cluster.highlight)){
+
+    if (label.on){
+      dat.test$label <- unlist(lapply(dat.test$cluster, unicode.convert))
+      ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_text(aes(label=label), size= text.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+colorPalette(dat.test$cluster, fill = F)
+
+    }else{
+      ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+colorPalette(dat.test$cluster, fill = F)
+    }#else
+
+  }else{
+    #highlight one single cluster
+    cluster.unique <- unique(dat.test$cluster)
+    values <- rep("grey", length(cluster.unique))
+    names(values) <- cluster.unique
+    values[as.character(cluster.highlight)] <- "red"
+
+    ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+ggplot2::scale_color_manual(values = values)
+  }#else
+
+}#ClusterPlot_fast
+
+
+
+
+#' Plot clusters on top of Seurat object, display cluster lables per spot
+#' @export
 ClusterPlot_label <- function(dat, cluster.label, pt.size = 2, text.size = 7, ratio = 1, use.myratio = F, image.alpha = 1){
   dat.tmp <- dat
 
@@ -161,174 +236,10 @@ ClusterPlot_label <- function(dat, cluster.label, pt.size = 2, text.size = 7, ra
 
 
 
-#caveat: cluster may be not the real cluster: Seurat treat cluster as
-ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio = F, cluster.highlight = NULL, image.alpha = 1){
-  dat.tmp <- dat
-
-  #coord <- Seurat::GetTissueCoordinates(object = dat@images$slice1)
-
-  if (use.myratio){
-    coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
-    myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
-    message(paste0("The aspect ratio is ", myratio))
-
-    ratio <- myratio
-  }#if
-
-  dat.tmp@meta.data$Cluster <- cluster.label
-  if (is.null(cluster.highlight)){
-    SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
-  }else{
-    SpatialPlot(dat.tmp,  pt.size.factor = pt.size, cells.highlight = rownames(dat.tmp@meta.data)[dat.tmp$Cluster==cluster.highlight], cols.highlight = c("red", alpha("gray10", 0)),alpha = NULL, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
-  }#else
-
-}#ClusterPlot
-
-
-
-
-
-#duplicates to ClusterPlot_fast, ClusterPlot_fast is more comprehensive
-Slide.ClusterPlot <- function(coor, cluster.label, pt.size = 2, ratio = 1, plot.all = F){
-
-  cluster.label <- as.character(cluster.label)
-  cluster.unique <- unique(cluster.label)
-
-  dat.plot <- data.frame(x= coor[,1], y = coor[,2], cluster = cluster.label)
-
-   if (plot.all){
-
-
-    p <- list()
-    for (ii in 1:length(cluster.unique)){
-      cluster.highlight <- cluster.unique[ii]
-
-      values <- rep("grey", length(cluster.unique))
-      names(values) <- cluster.unique
-      values[as.character(cluster.highlight)] <- "red"
-
-      p[[ii]] <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+ggplot2::scale_color_manual(values = values)
-
-    }#for ii
-
-    p <- ggarrange(plotlist = p)
-
-
-  }else{
-
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+geom_point(size = pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)
-
-  }#else
-
-  return(p)
-}#Slide.ClusterPlot
-
-
-
-
-
-
-ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio = 1, use.myratio=F, label.on = F, cluster.highlight = NULL){
-
-  if (use.myratio){
-    coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
-    myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
-    message(paste0("The aspect ratio is ", myratio))
-
-    ratio <- myratio
-  }#if
-
-
-  #dat.test <- data.frame(x=dat@images$slice1@coordinates$row, y = dat@images$slice1@coordinates$col, cluster = cluster.label)
-  #flip the coordinate
-  dat.test <- data.frame(x=dat@images[[1]]@coordinates$imagecol, y = dat@images[[1]]@coordinates$imagerow, cluster = cluster.label)
-
-  if (is.null(cluster.highlight)){
-
-    if (label.on){
-      dat.test$label <- unlist(lapply(dat.test$cluster, unicode.convert))
-      ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_text(aes(label=label), size= text.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+colorPalette(dat.test$cluster, fill = F)
-
-    }else{
-      ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+colorPalette(dat.test$cluster, fill = F)
-    }#else
-
-  }else{
-    #highlight one single cluster
-    cluster.unique <- unique(dat.test$cluster)
-    values <- rep("grey", length(cluster.unique))
-    names(values) <- cluster.unique
-    values[as.character(cluster.highlight)] <- "red"
-
-    ggplot(dat.test, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::theme(aspect.ratio = ratio)+ggplot2::scale_color_manual(values = values)
-  }#else
-
-}#ClusterPlot_fast
-
-
-
-
-
-
-
-#duplicate to LvPlot_fast, LvPlot_fast is more comprehensive
-Slide.LvPlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verbose =T, pt.size = 2, ratio = 1, x.offset = 1.05, font.size = 7, plot.all = F){
-
-  if (nrow(LVs) > ncol(LVs)){
-    LVs <- t(LVs)
-  }#if
-
-
-  if (gene.verbose & is.null(loading)){
-    stop("loading can't be NULL")
-  }#if
-
-  if (is.numeric(LVs) & is.vector(LVs)){
-    #no gene verbose in this case
-
-    dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs)
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggplot2::theme(aspect.ratio = ratio)
-
-  }else if (plot.all){
-    #no gene.verbose in this case
-    p <- list()
-
-    for (ii in 1:nrow(LVs)){
-      dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[ii,])
-      p[[ii]] <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", ii))+ggplot2::theme(aspect.ratio = ratio)
-    }#for ii
-
-    p <- ggarrange(plotlist = p)
-
-  }else{
-
-    print(paste0("LV ", LV.index))
-
-    if (gene.verbose){
-      print(sort(loading[,LV.index], decreasing = T)[1:10])
-    }#if
-
-    dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[LV.index,])
-
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", LV.index))+ggplot2::theme(aspect.ratio = ratio)
-
-    if (gene.verbose){
-      p <- p+annotate("text", x = max(dat.plot$x)*x.offset , y = median(dat.plot$y), label = paste(names(sort(loading[,LV.index], decreasing = T)[1:15]), collapse = "\n"), size = font.size)
-    } #if
-
-
-  }#else
-
-
-  return(p)
-
-}#Slide.LvPlot
-
-
-
-
 
 #seurat object plot
+#' Visualize single latent variable
+#' @export
 LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2, ratio = 1, use.myratio = F, ws = F, x.offset = 5, image.alpha= 1){
   dat.tmp <- dat
 
@@ -375,7 +286,8 @@ LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2
 
 
 
-
+#' Visualize single latent variable, no background image
+#' @export
 LvPlot_fast <- function(dat, val, pt.size=2, text.size=7, ratio = 1, use.myratio=F, plot.all = F){
 
   if (use.myratio){
@@ -405,7 +317,6 @@ LvPlot_fast <- function(dat, val, pt.size=2, text.size=7, ratio = 1, use.myratio
   }#else
 
 }#LvPlot_fast
-
 
 
 
@@ -488,54 +399,9 @@ leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adap
 }#leiden_adaptive
 
 
-niche_report <- function(ICAp.res, k.list = 2:15, num.of.cluster = NULL, verbose = T, scale = F, LV.index = NULL){
 
-  if (is.null(num.of.cluster)){
-    avg_sil <- sapply(k.list, silhouette_score, input = t(ICAp.res$B))
 
-    if (verbose){
-      plot(k.list, type='b', avg_sil, xlab='Number of clusters', ylab='Average Silhouette Scores', frame=FALSE)
-    }#verbose
 
-    #select num.of.cluster
-    ###############################################
-    order.list <- order(avg_sil, decreasing = T)
-    flag <- T
-    pointer <- 1
-
-    while (flag){
-      if ( (order.list[pointer]!=1) & (order.list[pointer]!= length(order.list) ) ){
-        if ( (avg_sil[order.list[pointer]] > avg_sil[order.list[pointer]-1]) & (avg_sil[order.list[pointer]] > avg_sil[order.list[pointer]+1]) ){
-          flag <- F
-        }#if
-      }#if
-
-      if (flag){
-        pointer <- pointer+1
-      }#if
-    }#while
-
-    num.of.cluster <- k.list[order.list[pointer]]
-
-  }#if
-
-  kmeans.input <- t(ICAp.res$B)
-
-  if (scale){
-    #scale per dimension
-    kmeans.input <- scale(kmeans.input)
-  }#scale
-
-  #selected LVs
-  if (!is.null(LV.index)){
-    kmeans.input <- kmeans.input[,LV.index]
-  }#if
-
-  #kmeans clustering
-  km.res <- kmeans(kmeans.input, centers = num.of.cluster, nstart = 25)
-
-  return(list(k = num.of.cluster, cluster = as.character(km.res$cluster)))
-}#niche_report
 
 
 
@@ -646,7 +512,8 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
 
 
 
-
+#' Main function
+#' @export
 manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NULL, shur0 = NULL, max.iter=200, tol=5e-6, trace=F,rseed=NULL, B=NULL, scale=1,  adaptive.frac=0.05, adaptive.iter=30, L4_adaptive =2, to_drop =T, pos = T, cor.thr = 0.8, save.complete = F, verbose = T){
 
   pos.adj=3
@@ -942,6 +809,8 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
 
 
 #tSNE or Umap plot
+#' Generate 2D projection plot
+#' @export
 Cluster_2Dplot <- function(LVs, cluster.label = NULL, cluster.option = "kmeans", cluster.label.scale = F, num.of.cluster = NULL,option = "umap", random.seed = 1, pt.size = 2, verbose = T, umap.opt = 30, tsne.opt = 30){
 
   message(paste0("Generate ", option, " plot."))
@@ -996,170 +865,4 @@ Cluster_2Dplot <- function(LVs, cluster.label = NULL, cluster.option = "kmeans",
 
 
 
-
-
-#http://www.cs.cmu.edu/afs/cs/user/dwoodruf/www/teaching/15859-fall21/lec4.pdf
-CountSketch <- function(nd, ns, random.seed = 1){
-  set.seed(random.seed)
-
-  x <- rep(NA, ns)
-  val <- rep(NA, ns)
-  for (ii in 1:ns){
-    x[ii] <- sample(1:nd, size = 1)
-    val[ii] <- sample(c(-1,1), size = 1)
-  }#ii
-
-  S <- Matrix::sparseMatrix(i = x, j = 1:ns, x = val)
-
-  return(S)
-}#CountSketch
-
-
-epsilon_JLT <- function(nr, ns, epsilon = 0.1, option = "iid", random.seed = 1, sparse = T){
-  set.seed(random.seed)
-
-  #https://arxiv.org/pdf/1109.3843.pdf
-  if (option == "iid"){
-    nrow <- nr
-    ncol <- round(log(ns)/epsilon^2)
-
-    message(paste0("d is set to be ", ncol))
-    sample.template <- c(0, sqrt(3/nr), -sqrt(3/nr))
-    sample.prob <- c(2/3, 1/6, 1/6)
-
-    eJLT <- matrix(sample(sample.template, prob = sample.prob, size = nrow*ncol, replace = T), nrow = nrow, ncol = ncol)
-
-  }#if
-
-  if (sparse){
-    eJLT <- Matrix::Matrix(eJLT, sparse = T)
-  }#if
-  return(eJLT)
-}#epsilon_JLT
-
-
-
-
-#TBD: nsketch should be determined based on the epsilon level
-LeverageScores <- function(X, nsketch, random.seed = 1, epsilon = 0.1){
-  #rotate the matrix to make cells as rows
-  A <- t(X)
-  S <- CountSketch(nsketch, nrow(A), random.seed = random.seed)
-
-  #perform QR decomposition
-  SA <- S%*%A
-  QR.res <- qr(SA, LAPACK = T)
-  R_inv <- qr.R(QR.res)
-
-  #numerical adjustment: filter based on the rank
-  include.index <- which(abs(diag(R_inv)) > 1e-7)
-
-  R_inv_trunc <- R_inv[include.index, ]
-  R_solve_trunc <- backsolve(R_inv_trunc, x = diag(ncol(R_inv_trunc)), k = nrow(R_inv_trunc), transpose = T) #5000*12481
-  R <- t(R_solve_trunc)
-
-  #generate a G matrix
-  #G <- epsilon_JLT(ncol(A), nrow(A))
-  G_dense <- epsilon_JLT(ncol(R), nrow(A), epsilon = epsilon, sparse = F, random.seed = random.seed)
-
-  #ptm <- proc.time()
-  RG1 <- eigenMapMatMult(R, G_dense)
-  #print(proc.time()-ptm)
-  ARG1 <- eigenMapMatMult(A, RG1)
-  #print(proc.time()-ptm)
-  #8.98s
-
-
-  ARG.2 <- ARG1^2
-  ls <- apply(ARG.2,1,sum)
-  return(ls)
-}#LeverageScores
-
-
-
-
-#Deprecated version: stop before LV collapse (upper.tri(correlation) > 0.5)
-md.shrink <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol){
-
-  Bdiff=Inf
-  BdiffTrace=double()
-  BdiffCount=0
-
-  getT=function(x){-quantile(x[x<0], adaptive.frac)}
-  round2=function(x){signif(x,4)}
-
-  flag <- "Done"
-
-
-  for ( i in 1:max.iter){
-    #Z update
-    ######################################
-    Zraw=Z=(Y%*%t(B))%*%solve(tcrossprod(B)+L1*diag(k))
-    if(i>=adaptive.iter && adaptive.frac>0){
-
-      cutoffs=apply(Zraw,2, getT)
-
-      for(j in 1:ncol(Z)){
-        Z[Z[,j]<cutoffs[j],j]=0
-      }#for j
-    }else{
-      Z[Z<0]=0
-    }#else
-
-
-    #B update
-    ######################################
-    oldB=B
-    #B=solve(crossprod(Z)+L2*diag(k))%*%(t(Z)%*%Y)
-    left <- 2*crossprod(Z)+2*L2*diag(k)
-    total <- 2*t(Z) %*% Y
-
-    B <- sylvester_pre(left, right.shur$U, right.shur$S, total)
-
-
-    #update error
-    ######################################
-    Bdiff=sum((B-oldB)^2)/sum(B^2)
-    BdiffTrace=c(BdiffTrace, Bdiff)
-    err0=sum((Y-Z%*%B)^2)+sum((Z)^2)*L1+sum(B^2)*L2
-    if(trace){
-      message(paste0("iter",i, " errorY= ",erry<-round2(mean((Y-Z%*%B)^2)), ", Bdiff= ",round2(Bdiff), ", Bkappa=", round2(kappa(B))))
-    }
-
-    #check for convergence
-    if(i>52&&Bdiff>BdiffTrace[i-50]){
-      BdiffCount=BdiffCount+1
-    }else if(BdiffCount>1){
-      BdiffCount=BdiffCount-1
-    }#else if
-
-    if(Bdiff<tol &&i>40){
-      message(paste0("converged at  iteration ", i))
-      break
-    }#if
-
-    if( BdiffCount>5&&i>40){
-      message(paste0("stopped at  iteration ", i, " Bdiff is not decreasing"))
-      break
-    }#if
-
-    #L4_adaptive
-    ###########################################
-    B.cor.res <- cor(t(B))
-    B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
-
-
-    if ( (max(B.cor.val) > 0.5) & (i > 20)){
-      if (L4 > min(L1, L2)){
-        flag <- "Shrink"
-        cat(paste0("i: ", i, "\n"))
-        break
-      }#L4
-    }#if
-
-  }#for i
-
-
-  return(list(flag = flag, B = B, Z =Z, Zraw = Zraw))
-}#md.shrink
 
