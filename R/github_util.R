@@ -254,7 +254,7 @@ L_generate <- function(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL)
 
   }else if (opt == "Tri.mesh"){
     tri.mesh.res <- tripack::tri.mesh(x = coor[,"array_row"], y = coor[,"array_col"])
-    neighbor.info <- neighbours(tri.mesh.res)
+    neighbor.info <- tripack::neighbours(tri.mesh.res)
 
     for (i in 1: length(neighbor.info)){
       A[i , neighbor.info[[i]] ] <- 1
