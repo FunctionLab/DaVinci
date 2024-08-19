@@ -12,45 +12,32 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// cpp_eigenMapMatMult
-SEXP cpp_eigenMapMatMult(const Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> B);
-RcppExport SEXP _DAVINCHI_cpp_eigenMapMatMult(SEXP ASEXP, SEXP BSEXP) {
+// eigenMapMatMult
+SEXP eigenMapMatMult(const Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> B);
+RcppExport SEXP _DAVINCHI_eigenMapMatMult(SEXP ASEXP, SEXP BSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type A(ASEXP);
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type B(BSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_eigenMapMatMult(A, B));
+    rcpp_result_gen = Rcpp::wrap(eigenMapMatMult(A, B));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_rcpp_sylvester
-arma::mat cpp_rcpp_sylvester(arma::mat left, arma::mat right, arma::mat total);
-RcppExport SEXP _DAVINCHI_cpp_rcpp_sylvester(SEXP leftSEXP, SEXP rightSEXP, SEXP totalSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type left(leftSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type right(rightSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type total(totalSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_rcpp_sylvester(left, right, total));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cpp_rcpp_shur
-Rcpp::List cpp_rcpp_shur(arma::mat x);
-RcppExport SEXP _DAVINCHI_cpp_rcpp_shur(SEXP xSEXP) {
+// rcpp_shur
+Rcpp::List rcpp_shur(arma::mat x);
+RcppExport SEXP _DAVINCHI_rcpp_shur(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_rcpp_shur(x));
+    rcpp_result_gen = Rcpp::wrap(rcpp_shur(x));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_sylvester_pre
-arma::mat cpp_sylvester_pre(arma::mat left, arma::mat Z2, arma::mat T2, arma::mat total);
-RcppExport SEXP _DAVINCHI_cpp_sylvester_pre(SEXP leftSEXP, SEXP Z2SEXP, SEXP T2SEXP, SEXP totalSEXP) {
+// sylvester_pre
+arma::mat sylvester_pre(arma::mat left, arma::mat Z2, arma::mat T2, arma::mat total);
+RcppExport SEXP _DAVINCHI_sylvester_pre(SEXP leftSEXP, SEXP Z2SEXP, SEXP T2SEXP, SEXP totalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -58,16 +45,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type Z2(Z2SEXP);
     Rcpp::traits::input_parameter< arma::mat >::type T2(T2SEXP);
     Rcpp::traits::input_parameter< arma::mat >::type total(totalSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_sylvester_pre(left, Z2, T2, total));
+    rcpp_result_gen = Rcpp::wrap(sylvester_pre(left, Z2, T2, total));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_DAVINCHI_cpp_eigenMapMatMult", (DL_FUNC) &_DAVINCHI_cpp_eigenMapMatMult, 2},
-    {"_DAVINCHI_cpp_rcpp_sylvester", (DL_FUNC) &_DAVINCHI_cpp_rcpp_sylvester, 3},
-    {"_DAVINCHI_cpp_rcpp_shur", (DL_FUNC) &_DAVINCHI_cpp_rcpp_shur, 1},
-    {"_DAVINCHI_cpp_sylvester_pre", (DL_FUNC) &_DAVINCHI_cpp_sylvester_pre, 4},
+    {"_DAVINCHI_eigenMapMatMult", (DL_FUNC) &_DAVINCHI_eigenMapMatMult, 2},
+    {"_DAVINCHI_rcpp_shur", (DL_FUNC) &_DAVINCHI_rcpp_shur, 1},
+    {"_DAVINCHI_sylvester_pre", (DL_FUNC) &_DAVINCHI_sylvester_pre, 4},
     {NULL, NULL, 0}
 };
 
