@@ -136,6 +136,7 @@ colorPalette <- function(partition, fill = T){
 
 #caveat: cluster may be not the real cluster: Seurat treat cluster as
 #' Plot clusters on top of Seurat object
+#' For Seurat object
 #' @export
 ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio = F, cluster.highlight = NULL, image.alpha = 1){
   dat.tmp <- dat
@@ -162,7 +163,55 @@ ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio 
 
 
 
+#' Plot clusters on top of Seurat object, display cluster lables per spot
+#' For Seurat object
+#' @export
+ClusterPlot_label <- function(dat, cluster.label, pt.size = 2, text.size = 7, ratio = 1, use.myratio = F, image.alpha = 1){
+  dat.tmp <- dat
+
+  if (use.myratio){
+    coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
+    myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
+    message(paste0("The aspect ratio is ", myratio))
+
+    ratio <- myratio
+  }#if
+
+  dat.tmp@meta.data$Cluster <- cluster.label
+  p1 <- SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha=image.alpha)+ggplot2::theme(aspect.ratio = ratio)
+
+  data.p1 <- ggplot_build(p1)
+  #data.p1$data[[1]]$shape <- NA #not necessary
+  dat.extra <- data.p1$data[[1]]
+
+  grp.real <- sort(unique(cluster.label))
+  names(grp.real) <- sort(unique(as.character(dat.extra$group)))
+
+
+  dat.extra$label <- unlist(lapply(grp.real[dat.extra$group], unicode.convert))
+  dat.extra$Cluster <- grp.real[dat.extra$group]
+
+  p1+geom_text(data = dat.extra, aes(x=x,y=y, label = label), size = text.size)
+}#ClusterPlot_label
+
+
+
+
+#' Visualize discrete variables only with coordinate information
+#' @export
+DiscretePlot <- function(coor, cluster.label, pt.size=2){
+
+  dat.plot <- data.frame(x=coor[,1], y = coor[,2], cluster = cluster.label)
+
+  ggplot(dat.plot, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+colorPalette(dat.plot$cluster, fill = F)
+
+}#DiscretePlot
+
+
+
+
 #' Plot clusters on top of Seurat object, no background image
+#' For Seurat object
 #' @export
 ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio = 1, use.myratio=F, label.on = F, cluster.highlight = NULL){
 
@@ -203,42 +252,9 @@ ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio =
 
 
 
-#' Plot clusters on top of Seurat object, display cluster lables per spot
-#' @export
-ClusterPlot_label <- function(dat, cluster.label, pt.size = 2, text.size = 7, ratio = 1, use.myratio = F, image.alpha = 1){
-  dat.tmp <- dat
-
-  if (use.myratio){
-    coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
-    myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
-    message(paste0("The aspect ratio is ", myratio))
-
-    ratio <- myratio
-  }#if
-
-  dat.tmp@meta.data$Cluster <- cluster.label
-  p1 <- SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha=image.alpha)+ggplot2::theme(aspect.ratio = ratio)
-
-  data.p1 <- ggplot_build(p1)
-  #data.p1$data[[1]]$shape <- NA #not necessary
-  dat.extra <- data.p1$data[[1]]
-
-  grp.real <- sort(unique(cluster.label))
-  names(grp.real) <- sort(unique(as.character(dat.extra$group)))
-
-
-  dat.extra$label <- unlist(lapply(grp.real[dat.extra$group], unicode.convert))
-  dat.extra$Cluster <- grp.real[dat.extra$group]
-
-  p1+geom_text(data = dat.extra, aes(x=x,y=y, label = label), size = text.size)
-}#ClusterPlot_label
-
-
-
-
-
 #seurat object plot
 #' Visualize single latent variable
+#' For Seurat object
 #' @export
 LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2, ratio = 1, use.myratio = F, ws = F, x.offset = 5, image.alpha= 1){
   dat.tmp <- dat
@@ -286,9 +302,23 @@ LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2
 
 
 
-#' Visualize single latent variable, no background image
+#' Visualize continous variables only with coordinate information
 #' @export
-LvPlot_fast <- function(dat, val, pt.size=2, text.size=7, ratio = 1, use.myratio=F, plot.all = F){
+FeaturePlot <- function(coor, val, pt.size=2){
+
+  dat.plot <- data.frame(x=coor[,1], y = coor[,2], val = val)
+
+  ggplot(dat.plot, aes(x=x,y=-y,color= val))+geom_point(size= pt.size)+theme_void()+ggthemes::scale_color_gradient2_tableau(palette = "Orange-Blue Diverging", trans = "reverse")
+
+}#FeaturePlot
+
+
+
+
+#' Visualize single latent variable, no background image
+#' For Seurat object
+#' @export
+LvPlot_fast <- function(dat, val, pt.size=2, ratio = 1, use.myratio=F, plot.all = F){
 
   if (use.myratio){
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
