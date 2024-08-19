@@ -2,18 +2,12 @@
 % Please edit documentation in R/util_working.R
 \name{LvPlot_fast}
 \alias{LvPlot_fast}
-\title{Visualize single latent variable, no background image}
+\title{Visualize single latent variable, no background image
+For Seurat object}
 \usage{
-LvPlot_fast(
-  dat,
-  val,
-  pt.size = 2,
-  text.size = 7,
-  ratio = 1,
-  use.myratio = F,
-  plot.all = F
-)
+LvPlot_fast(dat, val, pt.size = 2, ratio = 1, use.myratio = F, plot.all = F)
 }
 \description{
 Visualize single latent variable, no background image
+For Seurat object
 }

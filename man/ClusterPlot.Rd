@@ -2,7 +2,8 @@
 % Please edit documentation in R/util_working.R
 \name{ClusterPlot}
 \alias{ClusterPlot}
-\title{Plot clusters on top of Seurat object}
+\title{Plot clusters on top of Seurat object
+For Seurat object}
 \usage{
 ClusterPlot(
   dat,
@@ -16,4 +17,5 @@ ClusterPlot(
 }
 \description{
 Plot clusters on top of Seurat object
+For Seurat object
 }

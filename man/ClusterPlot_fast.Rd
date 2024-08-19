@@ -2,7 +2,8 @@
 % Please edit documentation in R/util_working.R
 \name{ClusterPlot_fast}
 \alias{ClusterPlot_fast}
-\title{Plot clusters on top of Seurat object, no background image}
+\title{Plot clusters on top of Seurat object, no background image
+For Seurat object}
 \usage{
 ClusterPlot_fast(
   dat,
@@ -17,4 +18,5 @@ ClusterPlot_fast(
 }
 \description{
 Plot clusters on top of Seurat object, no background image
+For Seurat object
 }

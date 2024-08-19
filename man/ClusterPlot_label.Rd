@@ -2,7 +2,8 @@
 % Please edit documentation in R/util_working.R
 \name{ClusterPlot_label}
 \alias{ClusterPlot_label}
-\title{Plot clusters on top of Seurat object, display cluster lables per spot}
+\title{Plot clusters on top of Seurat object, display cluster lables per spot
+For Seurat object}
 \usage{
 ClusterPlot_label(
   dat,
@@ -16,4 +17,5 @@ ClusterPlot_label(
 }
 \description{
 Plot clusters on top of Seurat object, display cluster lables per spot
+For Seurat object
 }

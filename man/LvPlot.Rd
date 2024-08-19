@@ -2,7 +2,8 @@
 % Please edit documentation in R/util_working.R
 \name{LvPlot}
 \alias{LvPlot}
-\title{Visualize single latent variable}
+\title{Visualize single latent variable
+For Seurat object}
 \usage{
 LvPlot(
   dat,
@@ -20,4 +21,5 @@ LvPlot(
 }
 \description{
 Visualize single latent variable
+For Seurat object
 }
