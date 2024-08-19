@@ -13,6 +13,9 @@ RoxygenNote: 7.1.2
 Imports: 
     Rcpp,
     RcppArmadillo,
-    RcppEigen
+    RcppEigen,
+    ggpubr,
+    tripack,
+    rsvd
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 SystemRequirements: BLAS, LAPACK
