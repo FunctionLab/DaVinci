@@ -1,9 +1,5 @@
-require(mclust)
-
-#source("/mnt/ceph/users/wmao1/KPMP/code/PLIER_Ahmed/speed_sylvester/L4_adaptive/scaling_1/utils_misc.R")
-
-
-
+#' Calculate the ARI metric
+#' @export
 CM <- function(x,y){
   include.index <- which(!is.na(x) & !is.na(y))
   return(aricode::ARI(x[include.index], y[include.index]))
@@ -37,6 +33,11 @@ L2Norm <- function(mat, MARGIN = 1){
 #partition <- swk(ICAp.res$B, method = "leiden", L2norm = T,  ld.resolution = 0.2, random.seed = 1)
 #https://github.com/scverse/scanpy/issues/1531
 
+#' Wrapper function for clustering
+#' 
+#' Including mclust, kmeans, leiden (on SNN or KNN)
+#' 
+#' @export
 swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num = NULL, km.num = NULL, ld.num.neighbors = 20, ld.resolution = NULL, ld.NN = "SNN", balanced.num = NULL, balanced.cluster.size = NULL, random.seed = 1, weights = NULL){
 
   #flip the coordinates
@@ -206,7 +207,8 @@ soft_threshold <- function(x, t){
 
 
 
-
+#' Perform fused lasso regression in batch
+#' @export 
 flr.batch <- function(data, D=NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 100, kmeans =F, verbose = F){
   if (ncol(data) < nrow(data)){
     data <- t(data)
@@ -224,7 +226,8 @@ flr.batch <- function(data, D=NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.
 
 #https://www.stat.cmu.edu/~ryantibs/convexopt-F15/lectures/21-dual-meth.pdf
 #https://web.stanford.edu/~boyd/papers/pdf/network_lasso.pdf
-
+#' Fused lasso regression for 2D
+#' @export 
 flr <- function(y, D = NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 100, kmeans = F, verbose = F){
 
   #construct D based on the Laplacian matrix
@@ -320,7 +323,8 @@ flr <- function(y, D = NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 
 
 
 
-
+#' Calculate the moran's I
+#' @export 
 moranI <- function(x, L){
   #recover the adj matrix from L
   A <- -L
@@ -333,6 +337,8 @@ moranI <- function(x, L){
 }#moranI
 
 
+#' Calculate the moran's I in batch
+#' @export 
 moranI_all <- function(x, L){
 
   res <- c()

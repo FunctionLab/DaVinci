@@ -1,8 +1,8 @@
 # https://github.com/jmonlong/Hippocamplus/blob/master/content/post/2018-06-09-ClusterEqualSize.Rmd
 
 
-
-
+#' Tile the slice for scalable implementation
+#' @export
 tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
   if (is.null(rownames(coord))){
     stop("Input doesn't have rownames.")
