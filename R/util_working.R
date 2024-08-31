@@ -10,6 +10,7 @@ require(emojifont) #recommended but not required
 
 
 #' Automatically tune the number of latent variables
+#' @importFrom rsvd rsvd
 #' @export
 AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.arg.list=exp(seq(log(100), log(10), length.out = length(k.arg.list))), frac.impute=0.1, frac.seed = 1 ){
   #create the dataset
@@ -27,7 +28,7 @@ AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.
   #########################
   message("Computing SVD")
   set.seed(123)
-  svdres=rsvd(gene.exp.hide, k = max(k.arg.list)+1) #to_drop -> +1
+  svdres=rsvd::rsvd(gene.exp.hide, k = max(k.arg.list)+1) #to_drop -> +1
   svdres=rotateSVD(svdres)
   #########################
 
@@ -196,20 +197,6 @@ ClusterPlot_label <- function(dat, cluster.label, pt.size = 2, text.size = 7, ra
 
 
 
-
-#' Visualize discrete variables only with coordinate information
-#' @export
-DiscretePlot <- function(coor, cluster.label, pt.size=2){
-
-  dat.plot <- data.frame(x=coor[,1], y = coor[,2], cluster = cluster.label)
-
-  ggplot(dat.plot, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+colorPalette(dat.plot$cluster, fill = F)
-
-}#DiscretePlot
-
-
-
-
 #' Plot clusters on top of Seurat object, no background image
 #' For Seurat object
 #' @export
@@ -248,6 +235,58 @@ ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio =
   }#else
 
 }#ClusterPlot_fast
+
+
+
+
+
+
+#' Visualize discrete variables only with coordinate information
+#' @export
+scatter.DiscretePlot <- function(coor, cluster.label, pt.size = 2, ratio = NULL, plot.all = F){
+
+  cluster.label <- as.character(cluster.label)
+  cluster.unique <- sort(unique(cluster.label))
+
+  dat.plot <- data.frame(x= coor[,1], y = coor[,2], cluster = cluster.label)
+
+   if (plot.all){
+
+    p <- list()
+    for (ii in 1:length(cluster.unique)){
+      cluster.highlight <- cluster.unique[ii]
+
+      values <- rep("grey", length(cluster.unique))
+      names(values) <- cluster.unique
+      values[as.character(cluster.highlight)] <- "red"
+
+      p[[ii]] <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::scale_color_manual(values = values)
+      if (!is.null(ratio)){
+          p[[ii]] <- p[[ii]]+ggplot2::theme(aspect.ratio = ratio)
+      }#if
+
+    }#for ii
+
+    p <- ggarrange(plotlist = p)
+
+  }else{
+
+    p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+geom_point(size = pt.size)+theme_void()+colorPalette(dat.plot$cluster, fill = F)
+    if (!is.null(ratio)){
+          p <- p+ggplot2::theme(aspect.ratio = ratio)
+    }#if
+
+  }#else
+
+  return(p)
+}#scatter.DiscretePlot 
+
+#DiscretePlot <- function(coor, cluster.label, pt.size=2){
+  #dat.plot <- data.frame(x=coor[,1], y = coor[,2], cluster = cluster.label)
+  #ggplot(dat.plot, aes(x=x,y=-y,color= cluster))+geom_point(size= pt.size)+theme_void()+colorPalette(dat.plot$cluster, fill = F)
+#}#DiscretePlot
+
+
 
 
 
@@ -301,20 +340,6 @@ LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2
 
 
 
-
-#' Visualize continous variables only with coordinate information
-#' @export
-FeaturePlot <- function(coor, val, pt.size=2){
-
-  dat.plot <- data.frame(x=coor[,1], y = coor[,2], val = val)
-
-  ggplot(dat.plot, aes(x=x,y=-y,color= val))+geom_point(size= pt.size)+theme_void()+ggthemes::scale_color_gradient2_tableau(palette = "Orange-Blue Diverging", trans = "reverse")
-
-}#FeaturePlot
-
-
-
-
 #' Visualize single latent variable, no background image
 #' For Seurat object
 #' @export
@@ -347,6 +372,74 @@ LvPlot_fast <- function(dat, val, pt.size=2, ratio = 1, use.myratio=F, plot.all 
   }#else
 
 }#LvPlot_fast
+
+
+
+
+
+
+#' Visualize continous variables only with coordinate information
+#' @export
+scatter.FeaturePlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verbose = F, pt.size = 2, ratio = NULL, x.offset = 1.05, font.size = 7, plot.all = F){
+
+  if (gene.verbose & is.null(loading)){
+    stop("loading can't be NULL if gene names will be printed out")
+  }#if
+
+  if (is.numeric(LVs) & is.vector(LVs)){
+    #no gene verbose in this case
+
+    dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs)
+    p <- ggplot(dat.plot, aes(x=x,y = -y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
+    
+    if (!is.null(ratio)){
+        p <- p+ggplot2::theme(aspect.ratio = ratio)
+    }#if
+
+  }else{
+    if (nrow(LVs) > ncol(LVs)){
+      LVs <- t(LVs)
+    }#if
+
+  #plot all rows
+  if (plot.all){
+    #no gene.verbose in this case
+    p <- list()
+
+    for (ii in 1:nrow(LVs)){
+      dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[ii,])
+      p[[ii]] <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", ii))+ggplot2::theme(aspect.ratio = ratio)
+    }#for ii
+
+    p <- ggarrange(plotlist = p)
+
+  }else{
+    #plot one specific row
+    print(paste0("LV ", LV.index))
+
+    if (gene.verbose){
+      print(sort(loading[,LV.index], decreasing = T)[1:10])
+    }#if
+
+    dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[LV.index,])
+
+    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", LV.index))+ggplot2::theme(aspect.ratio = ratio)
+
+    if (gene.verbose){
+      p <- p+annotate("text", x = max(dat.plot$x)*x.offset , y = median(dat.plot$y), label = paste(names(sort(loading[,LV.index], decreasing = T)[1:15]), collapse = "\n"), size = font.size)
+    } #if
+  }#else
+
+  }#else, matrix input
+  
+  return(p)
+}#scatter.FeaturePlot
+
+#FeaturePlot <- function(coor, val, pt.size=2){
+  #dat.plot <- data.frame(x=coor[,1], y = coor[,2], val = val)
+  #ggplot(dat.plot, aes(x=x,y=-y,color= val))+geom_point(size= pt.size)+theme_void()+ggthemes::scale_color_gradient2_tableau(palette = "Orange-Blue Diverging", trans = "reverse")
+#}#FeaturePlot
+
 
 
 

@@ -194,7 +194,7 @@ preprocess <- function(mat, coor, type = "rna", graph.opt = "Tri.mesh", frac.thr
   temp <- L_generate(coor, opt = graph.opt)
   L <- temp$L
 
-  return(list(mat = Matrix::as.matrix(mat), L = L, L.visual = temp$L.visual))
+  return(list(mat = Matrix::as.matrix(mat), coor = coor, L = L, L.visual = temp$L.visual))
 }#preprocess
 
 

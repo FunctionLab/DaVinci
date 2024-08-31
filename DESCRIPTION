@@ -16,6 +16,7 @@ Imports:
     RcppEigen,
     ggpubr,
     tripack,
-    rsvd
+    rsvd,
+    cluster
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 SystemRequirements: BLAS, LAPACK
