@@ -236,6 +236,7 @@ flr.batch <- function(data, D=NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.
 #https://www.stat.cmu.edu/~ryantibs/convexopt-F15/lectures/21-dual-meth.pdf
 #https://web.stanford.edu/~boyd/papers/pdf/network_lasso.pdf
 #' Fused lasso regression for 2D
+#' @importFrom methods as
 #' @export 
 flr <- function(y, D = NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 100, kmeans = F, verbose = F){
 

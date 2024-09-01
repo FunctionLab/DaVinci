@@ -420,7 +420,7 @@ scatter.FeaturePlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verb
     #no gene verbose in this case
 
     dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs)
-    p <- ggplot(dat.plot, aes(x=x,y = -y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
+    p <- ggplot2::ggplot(dat.plot, aes(x=x,y = -y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
     
     if (!is.null(ratio)){
         p <- p+ggplot2::theme(aspect.ratio = ratio)
@@ -438,7 +438,7 @@ scatter.FeaturePlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verb
 
     for (ii in 1:nrow(LVs)){
       dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[ii,])
-      p[[ii]] <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", ii))+ggplot2::theme(aspect.ratio = ratio)
+      p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", ii))+ggplot2::theme(aspect.ratio = ratio)
     }#for ii
 
     p <- ggarrange(plotlist = p)

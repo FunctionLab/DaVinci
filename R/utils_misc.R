@@ -188,6 +188,7 @@ kmvar <- function(mat,
 }#kmvar
 
 
+#' @importFrom stats as.dist
 hcbottom <- function(mat,
                      clsize = NULL,
                      diss = FALSE,
