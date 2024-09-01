@@ -207,6 +207,8 @@ preprocess <- function(mat, coor, type = "rna", graph.opt = "Tri.mesh", frac.thr
 
 
 #' Generate the Laplacian input
+#' @import tripack
+#' @import ggpubr
 #' @export
 L_generate <- function(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL){
 

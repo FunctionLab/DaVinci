@@ -11,3 +11,6 @@ LvPlot_fast(dat, val, pt.size = 2, ratio = 1, use.myratio = F, plot.all = F)
 Visualize single latent variable, no background image
 For Seurat object
 }
+\details{
+This function requires \code{Seurat}. Make sure it is installed
+}

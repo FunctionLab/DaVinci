@@ -24,3 +24,6 @@ swk(
 \description{
 Including mclust, kmeans, leiden (on SNN or KNN)
 }
+\details{
+This function requires \code{Seurat}. Make sure it is installed
+}

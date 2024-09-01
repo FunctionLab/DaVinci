@@ -23,3 +23,6 @@ BiModalIntegration(
 \description{
 Integrate two modalities
 }
+\details{
+This function requires \code{Seurat}. Make sure it is installed
+}

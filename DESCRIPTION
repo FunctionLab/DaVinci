@@ -19,8 +19,12 @@ Imports:
     rsvd,
     cluster,
     mclust,
-    dendextend
+    dendextend,
+    BiocNeighbors
 Suggests:
-    enrichR
+    enrichR,
+    Seurat,
+    uwot,
+    Rtsne
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 SystemRequirements: BLAS, LAPACK

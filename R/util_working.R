@@ -138,10 +138,14 @@ colorPalette <- function(partition, fill = T){
 #caveat: cluster may be not the real cluster: Seurat treat cluster as
 #' Plot clusters on top of Seurat object
 #' For Seurat object
+#' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio = F, cluster.highlight = NULL, image.alpha = 1){
   dat.tmp <- dat
 
+if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }
   #coord <- Seurat::GetTissueCoordinates(object = dat@images$slice1)
 
   if (use.myratio){
@@ -156,7 +160,7 @@ ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio 
   if (is.null(cluster.highlight)){
     SpatialPlot(dat.tmp, group.by = "Cluster", pt.size.factor = pt.size, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
   }else{
-    SpatialPlot(dat.tmp,  pt.size.factor = pt.size, cells.highlight = rownames(dat.tmp@meta.data)[dat.tmp$Cluster==cluster.highlight], cols.highlight = c("red", alpha("gray10", 0)),alpha = NULL, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
+    SpatialPlot(dat.tmp,  pt.size.factor = pt.size, cells.highlight = rownames(dat.tmp@meta.data)[dat.tmp$Cluster==cluster.highlight], cols.highlight = c("red",ggplot2::alpha("gray10", 0)),alpha = NULL, image.alpha = image.alpha)+ggplot2::theme(aspect.ratio = ratio)
   }#else
 
 }#ClusterPlot
@@ -166,9 +170,15 @@ ClusterPlot <- function(dat, cluster.label, pt.size = 2, ratio = 1, use.myratio 
 
 #' Plot clusters on top of Seurat object, display cluster lables per spot
 #' For Seurat object
+#' @import ggpubr
+#' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 ClusterPlot_label <- function(dat, cluster.label, pt.size = 2, text.size = 7, ratio = 1, use.myratio = F, image.alpha = 1){
   dat.tmp <- dat
+
+if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }
 
   if (use.myratio){
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
@@ -199,8 +209,14 @@ ClusterPlot_label <- function(dat, cluster.label, pt.size = 2, text.size = 7, ra
 
 #' Plot clusters on top of Seurat object, no background image
 #' For Seurat object
+#' @import ggpubr
+#' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio = 1, use.myratio=F, label.on = F, cluster.highlight = NULL){
+
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }
 
   if (use.myratio){
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
@@ -242,6 +258,7 @@ ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio =
 
 
 #' Visualize discrete variables only with coordinate information
+#' @import ggpubr
 #' @export
 scatter.DiscretePlot <- function(coor, cluster.label, pt.size = 2, ratio = NULL, plot.all = F){
 
@@ -294,9 +311,15 @@ scatter.DiscretePlot <- function(coor, cluster.label, pt.size = 2, ratio = NULL,
 #seurat object plot
 #' Visualize single latent variable
 #' For Seurat object
+#' @import ggpubr
+#' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2, ratio = 1, use.myratio = F, ws = F, x.offset = 5, image.alpha= 1){
   dat.tmp <- dat
+
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }
 
   if (use.myratio){
     #coord <- Seurat::GetTissueCoordinates(object = dat@images$slice1)
@@ -342,8 +365,14 @@ LvPlot <- function(dat, loading, LVs, LV.index = 1, gene.verbose =T, pt.size = 2
 
 #' Visualize single latent variable, no background image
 #' For Seurat object
+#' @import ggpubr
+#' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 LvPlot_fast <- function(dat, val, pt.size=2, ratio = 1, use.myratio=F, plot.all = F){
+
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }
 
   if (use.myratio){
     coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
@@ -379,6 +408,7 @@ LvPlot_fast <- function(dat, val, pt.size=2, ratio = 1, use.myratio=F, plot.all 
 
 
 #' Visualize continous variables only with coordinate information
+#' @import ggpubr
 #' @export
 scatter.FeaturePlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verbose = F, pt.size = 2, ratio = NULL, x.offset = 1.05, font.size = 7, plot.all = F){
 
@@ -933,6 +963,8 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
 
 #tSNE or Umap plot
 #' Generate 2D projection plot
+#' @import ggpubr
+#' @details This function requires `uwot` and `Rtsne`. Make sure they are installed.
 #' @export
 Cluster_2Dplot <- function(LVs, cluster.label = NULL, cluster.option = "kmeans", cluster.label.scale = F, num.of.cluster = NULL,option = "umap", random.seed = 1, pt.size = 2, verbose = T, umap.opt = 30, tsne.opt = 30){
 
@@ -962,11 +994,21 @@ Cluster_2Dplot <- function(LVs, cluster.label = NULL, cluster.option = "kmeans",
 
   #visualization
   if (option == "umap"){
+
+    if (!requireNamespace("uwot", quietly = TRUE)) {
+    stop("uwot is required for this function but is not installed. Please install it.")
+  }#if
+
     #umap.proj <- uwot::umap(kmeans.input, n_neighbors = 30, learning_rate = 0.5, init = "random", verbose = F, n_threads = 4, pca = NULL, n_epochs = 1000)
     umap.proj <- uwot::umap(kmeans.input, n_neighbors = umap.opt, learning_rate = 0.5, init = "random", verbose = F, n_threads = 4, pca = NULL, n_epochs = 1000)
     dat <- data.frame(x = umap.proj[,1], y = umap.proj[,2], Cluster = as.character(cluster.label))
 
   }else if (option == "tsne"){
+
+    if (!requireNamespace("Rtsne", quietly = TRUE)) {
+    stop("Rtsne is required for this function but is not installed. Please install it.")
+  }#if
+
     #rtsne.proj <- Rtsne::Rtsne(kmeans.input, perplexity = 30, verbose = F, pca = F)
     rtsne.proj <- Rtsne::Rtsne(kmeans.input, perplexity = tsne.opt, verbose = F, pca = F)
     dat <- data.frame(x = rtsne.proj$Y[,1], y = rtsne.proj$Y[,2], Cluster = as.character(cluster.label))

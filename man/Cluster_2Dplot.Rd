@@ -21,3 +21,6 @@ Cluster_2Dplot(
 \description{
 Generate 2D projection plot
 }
+\details{
+This function requires \code{uwot} and \code{Rtsne}. Make sure they are installed.
+}

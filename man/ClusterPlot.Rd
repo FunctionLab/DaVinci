@@ -19,3 +19,6 @@ ClusterPlot(
 Plot clusters on top of Seurat object
 For Seurat object
 }
+\details{
+This function requires \code{Seurat}. Make sure it is installed
+}

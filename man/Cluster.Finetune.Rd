@@ -19,3 +19,6 @@ Cluster.Finetune(
 \description{
 Supported clustering methods include mclust and louvain/leiden.
 }
+\details{
+This function requires \code{Seurat}. Make sure it is installed
+}

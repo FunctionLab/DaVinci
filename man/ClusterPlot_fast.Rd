@@ -20,3 +20,6 @@ ClusterPlot_fast(
 Plot clusters on top of Seurat object, no background image
 For Seurat object
 }
+\details{
+This function requires \code{Seurat}. Make sure it is installed
+}

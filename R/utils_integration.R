@@ -6,9 +6,15 @@
 
 
 #' Integrate two modalities
+#' @import BiocNeighbors
+#' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 BiModalIntegration <- function(modal.1, modal.2, mat.1=modal.1, mat.2=modal.2, n_neighbors = 20, n_neighbors_large = 200, sigma.idx = n_neighbors, snn.far.nn = T, L2norm = T, sd.scale = 1, cross.contant = 1e-4, prune.SNN = 0, kernel.power = 1){
   
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }#if
+
   #L2 normalization
   #################################
   if (L2norm){

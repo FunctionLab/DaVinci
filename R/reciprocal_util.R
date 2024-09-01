@@ -1,6 +1,10 @@
 
-
+#' @details This function requires `Seurat`. Make sure it is installed.
 GenePlot <- function(dat, features, pt.size = 2, ratio = 1, use.myratio = F){
+  
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }
   coord <- Seurat::GetTissueCoordinates(object = dat@images[[1]])
   myratio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
   message(paste0("The aspect ratio is ", myratio))

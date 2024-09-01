@@ -16,3 +16,6 @@ GSEA(
 \description{
 Gene Set Enrichment Analysis via enrichR
 }
+\details{
+This function requires \code{enrichR}. Make sure it is installed
+}

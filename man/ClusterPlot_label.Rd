@@ -19,3 +19,6 @@ ClusterPlot_label(
 Plot clusters on top of Seurat object, display cluster lables per spot
 For Seurat object
 }
+\details{
+This function requires \code{Seurat}. Make sure it is installed
+}

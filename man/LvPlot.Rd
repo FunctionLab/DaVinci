@@ -23,3 +23,6 @@ LvPlot(
 Visualize single latent variable
 For Seurat object
 }
+\details{
+This function requires \code{Seurat}. Make sure it is installed
+}

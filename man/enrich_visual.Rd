@@ -15,3 +15,6 @@ enrich_visual(
 \description{
 EnrichR-based visualization
 }
+\details{
+This function requires \code{enrichR}. Make sure it is installed
+}

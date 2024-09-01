@@ -37,6 +37,7 @@ L2Norm <- function(mat, MARGIN = 1){
 #' 
 #' Including mclust, kmeans, leiden (on SNN or KNN)
 #' @import mclust
+#' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num = NULL, km.num = NULL, ld.num.neighbors = 20, ld.resolution = NULL, ld.NN = "SNN", balanced.num = NULL, balanced.cluster.size = NULL, random.seed = 1, weights = NULL){
 
@@ -131,6 +132,9 @@ swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.
       stop("Resolution parameter is not set in leiden/louvain")
     }#if
 
+if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }
 
     snn.res <- Seurat::FindNeighbors(kmeans.input, k.param = ld.num.neighbors, return.neighbor = F, compute.SNN = T, verbose = F)
     if (ld.NN =="SNN"){
@@ -548,10 +552,15 @@ Differential.Analysis <- function(mat, cluster, batch = NULL, num.of.pseudo = 20
 
 
 #' EnrichR-based visualization
+#' @import ggpubr
+#' @details This function requires `enrichR`. Make sure it is installed
 #' @export
 enrich_visual <- function(gene.list, gene.all, dbs = c("HuBMAP_ASCTplusB_augmented_2022"), number.of.top=10, pathway = "HuBMAP_ASCTplusB_augmented_2022"){
   
-  enrich.res <- enrichr(gene.list, databases = dbs, background = gene.all)
+  if (!requireNamespace("enrichR", quietly = TRUE)) {
+    stop("enrichR is required for this function but is not installed. Please install it.")
+  }
+  enrich.res <- enrichR::enrichr(gene.list, databases = dbs, background = gene.all)
   
   dat.to_plot <- enrich.res[[pathway]]
   dat.to_plot <- dat.to_plot[order(dat.to_plot$Adjusted.P.value,decreasing = F)[1:number.of.top],]
@@ -576,6 +585,8 @@ enrich_visual <- function(gene.list, gene.all, dbs = c("HuBMAP_ASCTplusB_augment
 
 
 #' Gene Set Enrichment Analysis via enrichR
+#' @import ggpubr
+#' @details This function requires `enrichR`. Make sure it is installed
 #' @export
 GSEA <- function(gene.list, gene.all = NULL, dbs, pathway, number.of.top.pathway = 10, base_size = 15){
   
@@ -598,6 +609,7 @@ GSEA <- function(gene.list, gene.all = NULL, dbs, pathway, number.of.top.pathway
 #' 
 #' @import dendextend
 #' @import mclust
+#' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 #' 
 Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num.args = c(4, 6, 8, 9, 10, 11, 12, 14, 16, 18, 20), ld.resolution.args = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5),  random.seed = 1){
@@ -609,7 +621,7 @@ Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, m
     args <- mclust.num.args
       
     #flip the coordinates
-    if (ncol(input) > nrow(inpout) ){
+    if (ncol(input) > nrow(input) ){
        input <- t(input)
     }#if
     
@@ -671,6 +683,10 @@ Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, m
     
     args <- ld.resolution.args
     
+    if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }#if
+
     #leiden/louvain clustering
     for (ii in 1:length(args)){
       
