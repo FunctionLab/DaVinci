@@ -2,7 +2,7 @@
 % Please edit documentation in R/util_misc.R
 \name{pseudo.default}
 \alias{pseudo.default}
-\title{Differential analysis}
+\title{Differential analysis utility function}
 \usage{
 pseudo.default(
   data,
@@ -16,5 +16,5 @@ pseudo.default(
 )
 }
 \description{
-Differential analysis
+Differential analysis utility function
 }

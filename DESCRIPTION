@@ -17,6 +17,10 @@ Imports:
     ggpubr,
     tripack,
     rsvd,
-    cluster
+    cluster,
+    mclust,
+    dendextend
+Suggests:
+    enrichR
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 SystemRequirements: BLAS, LAPACK

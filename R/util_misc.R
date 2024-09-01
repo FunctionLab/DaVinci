@@ -36,7 +36,7 @@ L2Norm <- function(mat, MARGIN = 1){
 #' Wrapper function for clustering
 #' 
 #' Including mclust, kmeans, leiden (on SNN or KNN)
-#' 
+#' @import mclust
 #' @export
 swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num = NULL, km.num = NULL, ld.num.neighbors = 20, ld.resolution = NULL, ld.NN = "SNN", balanced.num = NULL, balanced.cluster.size = NULL, random.seed = 1, weights = NULL){
 
@@ -84,7 +84,7 @@ swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.
       count <- 0
       message("Repeat mclust")
       while ( (is.null(partition))& (count < 3)) {
-        mclust.res <- mclust::Mclust(kmeans.input, G = mclust.num, modelNames = mclust.model)
+        mclust.res <- mclust::Mclust(kmeans.input, G = mclust.num, modelNames = mclust.model, verbose = F)
         partition <- mclust.res$classification
         count <- count+1
       }#while
@@ -123,12 +123,12 @@ swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.
     km.res <- kmeans(kmeans.input, centers = km.num, nstart = 25)
     partition <- km.res$cluster
 
-  }else if (method == "leiden"){
+  }else if (method %in% c("leiden", "louvain")){
 
     message("Number of neighbors is ", ld.num.neighbors)
 
     if (is.null(ld.resolution)){
-      stop("Resolution parameter is not set in leiden")
+      stop("Resolution parameter is not set in leiden/louvain")
     }#if
 
 
@@ -158,8 +158,13 @@ swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.
 
     }#else if
 
-    partition <- leiden::leiden(leiden.input, resolution_parameter = ld.resolution)
-
+    if (method == "leiden"){
+      #partition <- leiden::leiden(leiden.input, resolution_parameter = ld.resolution)  
+      partition <- Seurat:::RunLeiden(leiden.input, resolution.parameter = ld.resolution, method = "matrix")
+    }else if (method == "louvain"){
+      partition <- Seurat:::RunModularityClustering(leiden.input, resolution = ld.resolution, algorithm = 1)
+    }#else if
+   
   }else if(method == "balanced"){
 
     if (is.null(balanced.cluster.size)){
@@ -422,7 +427,7 @@ mean.diff <- function(x, index1, index2){
 #reference_set: spot-by-LV/xandy for clustering purpose
 #leiden, mclust, balanced set clustering
 
-#' Differential analysis
+#' Differential analysis utility function
 #' @export
 pseudo.default <- function(data, one_hot_encode, batch = NULL, num.of.pseudo, verbose = T, reference_set = NULL, reference_set_opt = list(method="mclust", L2norm = T, ld.resolution=1, ld.num.neighbors=20, ld.NN="SNN", mclust.model = "EEE")){
 
@@ -497,7 +502,52 @@ pseudo.default <- function(data, one_hot_encode, batch = NULL, num.of.pseudo, ve
 
 
 
-#' Pathway enrichment analysis via EnrichR
+#' Differential analysis using meta-spot strategy
+#' @export 
+Differential.Analysis <- function(mat, cluster, batch = NULL, num.of.pseudo = 20, FDR.thr = 0.05, number.of.TopRanked = 200){
+  
+  cluster.forDA <- sort(unique(cluster))
+  
+  
+  #pseudo bulk and differential anlaysis via wilcoxon-ranksum test
+  ###############################################################################
+  diff.res <- list()
+  one_hot_encode <- rep("0", length(cluster))
+  
+  for (ii in 1:length(cluster.forDA)){
+      ohe <- one_hot_encode
+      ohe[cluster==cluster.forDA[ii]] <- "1"
+      
+      diff.res[[ii]] <- pseudo.default(mat, one_hot_encode = ohe, batch = batch, num.of.pseudo = num.of.pseudo, verbose = T)
+      
+  }#for ii
+  
+  names(diff.res) <- cluster.forDA
+
+  #FDR correction
+  ###############################################################################
+  gene.list <- list()
+  
+  for (ii in 1:length( diff.res )){
+    q.val <- p.adjust(diff.res[[ii]])
+    
+    if (sum(q.val < FDR.thr, na.rm=T) > number.of.TopRanked){
+      gene.list[[ii]] <- names(sort(q.val, decreasing = F)[1:number.of.TopRanked])    
+    }else{
+      gene.list[[ii]] <- names(which(q.val<FDR.thr))    
+    }#else
+  }#for ii
+  
+  names(gene.list) <- cluster.forDA
+  return(list(diff.res = diff.res, gene.list = gene.list))
+  
+}#Differential.Analysis
+
+
+
+
+
+#' EnrichR-based visualization
 #' @export
 enrich_visual <- function(gene.list, gene.all, dbs = c("HuBMAP_ASCTplusB_augmented_2022"), number.of.top=10, pathway = "HuBMAP_ASCTplusB_augmented_2022"){
   
@@ -521,5 +571,154 @@ enrich_visual <- function(gene.list, gene.all, dbs = c("HuBMAP_ASCTplusB_augment
                   rotate=T
   )+geom_hline(yintercept = -log10(0.05), linetype = 2, color = "black")+xlab("")+ylab("-log10(FDR)")+theme(legend.position = "none", axis.text.x = element_text(size = 20), axis.title.y = element_text(face = "bold", size= 30))
   
-  p
+  return(list(p=p, summary = dat.to_plot))
 }#enrich_visual
+
+
+#' Gene Set Enrichment Analysis via enrichR
+#' @export
+GSEA <- function(gene.list, gene.all = NULL, dbs, pathway, number.of.top.pathway = 10, base_size = 15){
+  
+  plot.list <- list()
+  
+  for (ii in 1:length(gene.list)){
+    #with background
+    query <- enrich_visual(gene.list[[ii]], gene.all= gene.all, dbs = dbs, number.of.top = number.of.top.pathway, pathway = pathway) 
+    plot.list[[ii]] <- query$p+ggtitle(paste0("Cluster ", names(gene.list)[ii]))+theme_pubr(base_size = base_size)
+  }#for ii  
+  ggarrange(plotlist = plot.list)
+}#GSEA
+
+
+
+
+#' Finetune the number of clusters via the Fowlkes-Mallows Index
+#'
+#' Supported clustering methods include mclust and louvain/leiden. 
+#' 
+#' @import dendextend
+#' @import mclust
+#' @export
+#' 
+Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num.args = c(4, 6, 8, 9, 10, 11, 12, 14, 16, 18, 20), ld.resolution.args = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5),  random.seed = 1){
+    
+  par.list <- list()
+  set.seed(random.seed)
+  
+  if (method == "mclust"){
+    args <- mclust.num.args
+      
+    #flip the coordinates
+    if (ncol(input) > nrow(inpout) ){
+       input <- t(input)
+    }#if
+    
+    if (L2norm){
+      input <- L2Norm(input, MARGIN = 2)
+    }else if (zscore){
+      input <- scale(input)
+    }#else
+    
+    
+    for (ii in 1:length(args)){
+      mclust.res <- mclust::Mclust(input, G = args[ii], modelNames = mclust.model, verbose = F)
+      partition <- mclust.res$classification
+      
+      
+      #if is.null
+      ###########################
+      if (is.null(partition)){
+        count <- 0
+        message("Repeat mclust")
+        
+        while( (is.null(partition)) & (count < 3) ){
+           mclust.res <- mclust::Mclust(input, G = args[ii], modelNames = mclust.model, verbose = F)
+           partition <- mclust.res$classification
+           count <- count+1
+        }#while
+      }#if is.null
+      
+      
+      #if still is.null
+      ###########################
+      if (is.null(partition)){
+        
+        message("Supervised mclust")
+        set.seed(1)
+        
+        training.index <- sample(1:nrow(input), nrow(input)*0.2)
+        test.index <- setdiff(1:nrow(input), training.index)
+        input.training <- input[training.index,]
+        input.test <- input[test.index,]
+        
+        mclust.res <- mclust::Mclust(input.training, G = args[ii], modelNames = mclust.model, verbose = F)
+        p.training <- mclust.res$classification
+        
+        test.res <- predict(mclust.res, newdata = input.test)
+        p.test <- test.res$classification
+        
+        partition <- rep(NA, nrow(input))
+        partition[training.index] <- p.training
+        partition[test.index] <- p.test
+        
+      }#if is.null
+      
+      par.list[[ii]] <- partition
+      
+    }#for ii
+    
+  }else if (method %in% c("leiden", "louvain") ){
+    
+    args <- ld.resolution.args
+    
+    #leiden/louvain clustering
+    for (ii in 1:length(args)){
+      
+      if (method == "leiden"){
+          partition <-  Seurat:::RunLeiden(input, resolution.parameter = args[ii], method = "matrix")
+      }else if (method == "louvain"){
+          partition <- Seurat:::RunModularityClustering(input, resolution = args[ii], algorithm = 1)
+        
+      }#else if
+      par.list[[ii]] <- partition
+    }#for ii
+    
+  }#else if
+  
+  #FM index calculated
+  #########################################################
+  fw.val <- c()
+  for (ii in 1:(length(par.list)-1)){
+    fw.val <- c(fw.val, dendextend::FM_index( as.character(par.list[[ii]]), as.character(par.list[[ii+1]]) ) )
+  }#for ii
+  
+  #figure out the best number
+  ###########################
+  #first calculate the average
+  fw.val.average <- rep(NA, length(par.list))
+  fw.val.average[1] <- fw.val[1]
+  for (ii in 2: (length(fw.val.average)-1) ){
+     fw.val.average[ii] <- (fw.val[ii]+fw.val[ii-1])/2
+  }#for ii
+  fw.val.average[length(fw.val.average)] <- fw.val[length(fw.val.average)-1]
+  
+  
+  #pick up local optimum
+  index.opt <- c()
+  for (ii in 2:(length(fw.val.average)-1)){
+    if ( ( fw.val.average[ii] >= fw.val.average[ii-1] ) & (fw.val.average[ii] >= fw.val.average[ii+1]) ){
+    index.opt <- c(index.opt, ii)     
+    }#if 
+  }#for ii
+  args.opt <- args[index.opt]
+  
+  
+  return(list(args = args, fw.val = fw.val, fw.val.average = fw.val.average, par.list = par.list, args.opt = args.opt))
+  
+}#Cluster.Finetune
+
+
+
+
+
+

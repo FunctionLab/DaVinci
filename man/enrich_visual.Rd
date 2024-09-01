@@ -2,7 +2,7 @@
 % Please edit documentation in R/util_misc.R
 \name{enrich_visual}
 \alias{enrich_visual}
-\title{Pathway enrichment analysis via EnrichR}
+\title{EnrichR-based visualization}
 \usage{
 enrich_visual(
   gene.list,
@@ -13,5 +13,5 @@ enrich_visual(
 )
 }
 \description{
-Pathway enrichment analysis via EnrichR
+EnrichR-based visualization
 }
