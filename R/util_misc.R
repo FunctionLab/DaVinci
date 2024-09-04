@@ -560,7 +560,10 @@ enrich_visual <- function(gene.list, gene.all, dbs = c("HuBMAP_ASCTplusB_augment
   
   if (!requireNamespace("enrichR", quietly = TRUE)) {
     stop("enrichR is required for this function but is not installed. Please install it.")
-  }
+  }else{
+    suppressPackageStartupMessages(require("enrichR", character.only=TRUE))
+  }#else
+
   enrich.res <- enrichR::enrichr(gene.list, databases = dbs, background = gene.all)
   
   dat.to_plot <- enrich.res[[pathway]]

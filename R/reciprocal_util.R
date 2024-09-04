@@ -224,4 +224,51 @@ reciprocal_deco <- function(proj, option = "L2norm", LVs.filter = F, LVs.filter.
 
 
 
+#' Horizontal Integration
+#'
+#' @param LVs.filter.thr The correlation threshold for LV filtering.
+#' @param mod The deafult value is "all" which takes all LVs to integrate, and the alternative value is "common", which only includes highly correlated LVs to integrate.
+#' 
+#' @import harmony
+#' @export
+Horizontal.Integration <- function(Y.list, L.list, coor.list, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = T){
+  
+  if ((length(Y.list) > 30) & (mod == "all")){
+    message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
+  }#if
+  
+  #single slice
+  ##########################################################
+  dav.res.list <- list()
+  
+  for (ii in 1:length(Y.list)){
+    dav.res.list[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.args[ii], L4 = 50, L4_adaptive = 2, to_drop = T, save.complete = T)
+  }#for ii
+  
+  #horizontal integration  
+  ##########################################################
+  message("Reciprocal projection starts.")
+  proj <- reciprocal_default(Y.list, L.list, dav.res.list)
+  LVs <- reciprocal_deco(proj, option = "L2norm", LVs.filter = T, LVs.filter.thr = LVs.filter.thr, mod = mod)
+  
+  
+  #remove LV 1
+  if (remove.L1){
+    LVs <- LVs[which(!grepl("LV 1$", rownames(LVs))),]  
+  }#if remove.L1
+  
+  
+  #harmony
+  ##########################################################
+  message("Batch correction starts.")
+  LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
+
+  rownames(LVs_embeddings) <- colnames(LVs)
+  slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
+  
+  
+  return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id))
+  
+}#Horizontal.Integration
+
 

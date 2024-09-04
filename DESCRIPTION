@@ -21,7 +21,8 @@ Imports:
     cluster,
     mclust,
     dendextend,
-    BiocNeighbors
+    BiocNeighbors,
+    harmony
 Suggests:
     enrichR,
     Seurat,
