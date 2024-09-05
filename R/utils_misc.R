@@ -227,3 +227,184 @@ hcbottom <- function(mat,
 
 
 
+
+
+
+
+#' Scalable implementation
+#' 
+#' @export
+manifoldDecomp.scalable <- function(gene.exp, coor, k.arg = 20, L4.arg = 50, max.iter = 10){
+  
+  #step 1: generate a partition
+  #############################################################################
+  grid_ids <- tile_the_slice(coor, random.seed = 1, L2_number = 4000)
+  
+  
+  #mean aggregation per tile
+  ##################################
+  unique_grid_ids <- unique(grid_ids)
+  tile_list <- lapply(unique_grid_ids, function(x){which(grid_ids==x)})
+  tile_aggregation <- lapply(tile_list, function(x){apply(gene.exp[,names(x),drop=F],1,mean)} )
+  tile_mat <- do.call(cbind, tile_aggregation)
+  colnames(tile_mat) <- paste0("Tile_", unique_grid_ids)
+  names(tile_list) <- paste0("Tile_", unique_grid_ids)
+  
+  
+  
+  #keep the coordinates for each tile
+  ##################################
+  coor_aggregation <- lapply(tile_list, function(x){apply(coor[names(x),,drop=F],2,mean)} )
+  coor.tile <- do.call(rbind, coor_aggregation)
+  colnames(coor.tile) <- c("array_col", "array_row")
+  rownames(coor.tile) <- paste0("Tile_",seq_along(coor.tile[,1]))
+  
+  
+  #step 2: tile-level decomposition, get Z
+  ##################################
+  #tile_mat, coor.tile
+  fin.tile <- DAVINCHI::preprocess(tile.mat, coor.tile, type = "rna", graph.opt = "Tri.mesh",  frac.thr = 0.95)
+  
+  gene.exp.tile <- fin.tile$mat
+  L.tile <- fin.tile$L
+  
+  ICAp.res.tile0 <- manifoldDecomp_adaptive(gene.exp.tile, L.tile, k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T)
+  
+  
+  #step 3: within-tile update
+  ##################################
+  gene.exp.list <- list()
+  L.list <- list()
+  L1.grid <- list()
+  L2.grid <- list()
+  shur0.grid <- list()
+  density.grid <- unlist(lapply(tile_list, length))
+  B.list <- list()
+  
+  for (ii in 1:length(tile_list)){
+    #print(ii)
+    if (density.grid[ii] > 3){
+      gene.exp.inuse <- gene.exp[,names(tile_list[[ii]])]
+      
+      coor.inuse <- coor[names(tile_list[[ii]]), ,drop = F]
+      temp <- L_generate(coor.inuse, opt = "Tri.mesh")
+      
+      gene.exp.list[[ii]] <- gene.exp.inuse
+      L.list[[ii]] <- temp$L
+      
+      ICAp.res.inuse <- impact_adaptive(ICAp.res.tile0$Z, gene.exp.inuse, query.L = temp$L, query.L4 = L4.arg, to_drop = F, scale=1, max.iter = 200, cor.thr = 0.8, verbose = F)
+      
+      #Slide.LvPlot(coor.inuse, LVs= ICAp.res.inuse$B, gene.verbose = F, plot.all = T)
+      
+      L1.grid[[ii]] <- ICAp.res.inuse$L1
+      L2.grid[[ii]] <- ICAp.res.inuse$L2
+      shur0.grid[[ii]] <- ICAp.res.inuse$shur0
+      B.list[[ii]] <- ICAp.res.inuse$B
+      
+    }else{
+      
+      gene.exp.list[[ii]] <- NA
+      L.list[[ii]] <- NA
+      L1.grid[[ii]] <- NA  
+      L2.grid[[ii]] <- NA
+      shur0.grid[[ii]] <- NA
+      L.grid[[ii]] <- NA
+      B.list[[ii]] <- NA
+    }#else
+    
+  }#for ii
+  
+  
+  #step 4: construct new B to update Z
+  ##################################
+  #global B - averaging B from tile
+  B.agg.pre <- lapply(B.list, function(x){apply(x,1,mean)} )
+  B.aggregate <- do.call(cbind, B.agg.pre)
+  
+  
+  
+  
+  #repeat step 2,3,4 till convergence
+  #############################################################################
+  error.relative <- normF(ICAp.res.tile0$B - B.aggregate)/normF(ICAp.res.tile0$B)
+  error.accum <- c(error.relative)
+  
+  count <- 0
+  
+  while ( (error.relative >=1e-3) & (count <= max.iter) ){
+    
+    count <- count+1
+    print(count)
+    
+    #B.to_report <- do.call(cbind, B.list)
+    #corr.list[[count]] <- cor(t(B.to_report), t(gt.B[,colnames(B.to_report)]))
+    
+    
+    ptm <- proc.time()
+    ICAp.res.tile <- manifoldDecomp_adaptive(gene.exp.tile, L.tile, B = B.aggregate, k = k.arg,  svdres = NA, L1 = ICAp.res.tile0$L1, L2 = ICAp.res.tile0$L2, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T)
+    print(proc.time()-ptm)
+    
+    #visualization check
+    #pheatmap::pheatmap(cor(t(ICAp.res.tile$B)), display_numbers = T, fontsize = 20)
+    #Slide.LvPlot(coor.tile, LVs= ICAp.res.tile$B, gene.verbose = F, plot.all = T)
+    
+    
+    
+    #tile-wise update
+    ###############################################################################
+    B.list <- list()
+    
+    
+    for (ii in 1:length(tile_list)){
+      #print(ii)
+      if (density.grid[ii] > 3){
+        gene.exp.inuse <- gene.exp[,names(tile_list[[ii]])]
+        
+        coor.inuse <- coor[names(tile_list[[ii]]), ,drop = F]
+        temp <- L_generate(coor.inuse, opt = "Tri.mesh")
+        
+        gene.exp.list[[ii]] <- gene.exp.inuse
+        L.list[[ii]] <- temp$L
+        
+        ICAp.res.inuse <- impact_adaptive(ICAp.res.tile$Z, gene.exp.list[[ii]] , query.L = L.list[[ii]], query.L1 = L1.grid[[ii]], query.L2 = L2.grid[[ii]], query.L4 = L4.arg, query.shur0 = shur0.grid[[ii]], to_drop = F, scale=1, max.iter = 200, cor.thr = 0.8, verbose =F)
+        
+        #Slide.LvPlot(coor.inuse, LVs= ICAp.res.inuse$B, gene.verbose = F, plot.all = T)
+        B.list[[ii]] <- ICAp.res.inuse$B
+        
+      }else{
+        
+        B.list[[ii]] <- NA
+      }#else
+    }#for ii
+    
+    
+    #global B - averaging B from tile
+    B.agg.pre <- lapply(B.list, function(x){apply(x,1,mean)} )
+    B.aggregate <- do.call(cbind, B.agg.pre)
+    
+    #visualization check
+    #Slide.LvPlot(coor.tile, LVs= B.aggregate, gene.verbose = F, plot.all = T)
+    
+    
+    error.relative <- normF(ICAp.res.tile$B - B.aggregate)/normF(ICAp.res.tile$B)
+    message(paste0("Error:", error.relative))
+    error.accum <- c(error.accum, error.relative)
+    
+  }#while
+  
+  
+  #return the result
+  #############################################################################
+  
+  #tile level: coor.tile, gene.exp.tile, B.aggregate, ICAp.res.tile
+  
+  #spot level: B.spot, B.list
+  B.spot <- do.call(cbind, B.list)[,colnames(coor)]
+  
+  
+  return(list(coor.tile = coor.tile, gene.exp.tile = gene.exp.tile, B.aggregate = B.aggregate, dav.res.tile = ICAp.res.tile, B.list = B.list, B.spot = B.spot))
+  
+  
+}#manifoldDecomp.scalable
+
+

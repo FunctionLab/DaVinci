@@ -253,7 +253,7 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, k.args = rep(12, l
   
   
   #remove LV 1
-  if (remove.L1){
+  if (remove.LV1){
     LVs <- LVs[which(!grepl("LV 1$", rownames(LVs))),]  
   }#if remove.L1
   
@@ -270,5 +270,74 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, k.args = rep(12, l
   return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id))
   
 }#Horizontal.Integration
+
+
+
+
+#' Concatenate multiple gene expression matrix together 
+#' @export
+p.concatenate <- function(gene.exp.list, slice_id = NULL){
+   
+  #figure out the gene names
+  #######################################################
+  gene.name.list <- lapply(gene.exp.list, rownames)
+  gene.name.inuse <- p.intersect(gene.name.list)
+  
+  gene.exp.list.joint <- lapply(gene.exp.list, function(x){x[gene.name.inuse,]})
+  
+  #concatenate
+  #######################################################
+  res <- p.cbind(gene.exp.list.joint)
+  
+  #rename the column names
+  #######################################################
+  slice_id_numeric <- as.character(rep(1:length(gene.exp.list), times = unlist(lapply(gene.exp.list, ncol)) ))
+  if (!is.null(slice_id)){
+     if (!all(slice_id == slice_id_numeric)){
+        stop("Need to check slice_id carefully.")
+     }else{
+       slice_id <- slice_id_numeric
+     }#else
+  }#if
+  
+  colnames(res) <- paste0(slice_id, "_", colnames(res))
+  return(res)
+  
+}#p.concatenate
+
+
+
+
+
+
+p.cbind <- function(x){
+  if (length(x)==1){
+    return(x[[1]])
+  }else if (length(x)==2){
+    return(cbind(x[[1]], x[[2]]))
+  }else if (length(x)>2){
+    res <- cbind(x[[1]], x[[2]])
+    for (ii in 3:length(x)){
+      res <- cbind(res, x[[ii]])
+    }#for ii
+    return(res)
+  }#else if
+}#p.cbind
+
+
+p.rbind <- function(x){
+  if (length(x)==1){
+    return(x[[1]])
+  }else if (length(x)==2){
+    return(rbind(x[[1]], x[[2]]))
+  }else if (length(x)>2){
+    res <- rbind(x[[1]], x[[2]])
+    for (ii in 3:length(x)){
+      res <- rbind(res, x[[ii]])
+    }#for ii
+    return(res)
+  }#else if
+}#p.rbind
+
 
 

@@ -595,11 +595,17 @@ enrich_visual <- function(gene.list, gene.all, dbs = c("HuBMAP_ASCTplusB_augment
 GSEA <- function(gene.list, gene.all = NULL, dbs, pathway, number.of.top.pathway = 10, base_size = 15){
   
   plot.list <- list()
-  
+  count <- 0
+
   for (ii in 1:length(gene.list)){
     #with background
-    query <- enrich_visual(gene.list[[ii]], gene.all= gene.all, dbs = dbs, number.of.top = number.of.top.pathway, pathway = pathway) 
-    plot.list[[ii]] <- query$p+ggtitle(paste0("Cluster ", names(gene.list)[ii]))+theme_pubr(base_size = base_size)
+    if (length(gene.list[[ii]]) > 0){
+        query <- enrich_visual(gene.list[[ii]], gene.all= gene.all, dbs = dbs, number.of.top = number.of.top.pathway, pathway = pathway) 
+    
+        count <- count+1
+        plot.list[[count]] <- query$p+ggtitle(paste0("Cluster ", names(gene.list)[ii]))+theme_pubr(base_size = base_size)
+    }#if
+    
   }#for ii  
   ggarrange(plotlist = plot.list)
 }#GSEA

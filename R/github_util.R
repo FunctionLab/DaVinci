@@ -33,7 +33,7 @@ tscale <- function(mat){
 
 
 normalize_barcode_sums_to_median <- function(gbm){
-  bc_sums <- colSums(gbm)
+  bc_sums <- Matrix::colSums(gbm)
   median_sum <- median(bc_sums)
   return(sweep(gbm,2,median_sum/bc_sums, '*'))
 }#normalize_barcode_sums_to_median
@@ -47,7 +47,11 @@ gene_normalization <- function(gene.exp, frac.thr = 0.95, MT.remove = T, median.
   #use_gene <- which(apply(gene.exp==0,1,sum)/ncol(gene.exp) < frac.thr)
 
   use_gene <- which(Matrix::rowSums(gene.exp==0)/ncol(gene.exp) < frac.thr)
-  gene.exp <- as.matrix(gene.exp[use_gene,])
+  if (is.data.frame(gene.exp)){
+    gene.exp <- as.matrix(gene.exp[use_gene,])
+  }else{
+    gene.exp <- gene.exp[use_gene,]
+  }#else
 
   #remove MT- genes
   if (MT.remove){

@@ -110,7 +110,7 @@ unicode.convert <- function(x){
 #' @export
 colorPalette <- function(partition, fill = T){
   num.of.clusters <- length(unique(partition))
-  val.names <- sort(as.character(1:num.of.clusters))
+  #val.names <- sort(as.character(1:num.of.clusters))
 
   if (num.of.clusters <=8){
     #ColorBlind_Pal()
@@ -122,7 +122,7 @@ colorPalette <- function(partition, fill = T){
   }#else
 
   #names(values) <- val.names
-  names(values) <- as.character(unique(partition))
+  names(values) <- as.character(sort(unique(partition)))
   if (fill){
     return(ggplot2::scale_fill_manual(values = values))
   }else{
