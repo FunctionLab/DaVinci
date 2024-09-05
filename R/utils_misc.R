@@ -40,16 +40,40 @@ same_size_clustering <- function(mat, diss = FALSE, clsize = NULL,
   algo <- match.arg(algo)
   method <- match.arg(method)
   do.call(algo, args = list(mat = mat, diss = diss, clsize = clsize, method = method))
-}
+}#same_size_clustering
+
+
+
+
+#minimized the difference in set size
+minimal.diff <- function(n, base_size){
+  k <- n %/% base_size
+  base_size <- n %/% k
+  remainder <- n %%k
+  set_sizes <- c(rep(base_size, k-remainder), rep(base_size+1, remainder))
+  return(set_sizes)
+}#minimal.diff
+
+
 
 nnit <- function(mat,
                  clsize = NULL,
                  diss = FALSE,
                  method = "maxd") {
+  
   stopifnot(is.logical(diss))
 
-  clsize.rle <- rle(as.numeric(cut(1:nrow(mat), ceiling(nrow(mat) / clsize))))
-  clsize <- clsize.rle$lengths
+  #default, can go below clsize
+  #clsize.rle <- rle( as.numeric(cut(1:nrow(mat), ceiling(nrow(mat) / clsize))) )
+  #clsize <- clsize.rle$lengths
+  
+  #make sure the cluster size is at least clsize
+  #clsize.rle <- rle( as.numeric(cut(1:nrow(mat), floor( nrow(mat) / clsize))) )
+  #clsize <- clsize.rle$lengths
+  
+  #equvalant, but easier to understand
+  clsize <- minimal.diff(nrow(mat), clsize)
+  
   lab <- rep(NA, nrow(mat))
   if (isFALSE(diss)) {
     dmat <- as.matrix(dist(mat))
@@ -75,7 +99,7 @@ nnit <- function(mat,
     lab[which(is.na(lab))] <- cpt
   }
   lab
-}#same_size_clustering
+}#nnit
 
 
 kmvar <- function(mat,
@@ -346,13 +370,14 @@ manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20
     count <- count+1
     print(count)
     
+    #check correlation
     #B.to_report <- do.call(cbind, B.list)
     #corr.list[[count]] <- cor(t(B.to_report), t(gt.B[,colnames(B.to_report)]))
     
     
-    ptm <- proc.time()
+    #ptm <- proc.time()
     ICAp.res.tile <- manifoldDecomp_adaptive(gene.exp.tile, L.tile, B = B.aggregate, k = k.arg,  svdres = NA, L1 = ICAp.res.tile0$L1, L2 = ICAp.res.tile0$L2, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T)
-    print(proc.time()-ptm)
+    #print(proc.time()-ptm)
     
     #visualization check
     #pheatmap::pheatmap(cor(t(ICAp.res.tile$B)), display_numbers = T, fontsize = 20)
@@ -368,21 +393,13 @@ manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20
     for (ii in 1:length(tile_list)){
       #print(ii)
       if (density.grid[ii] > 3){
-        gene.exp.inuse <- gene.exp[,names(tile_list[[ii]])]
-        
-        coor.inuse <- coor[names(tile_list[[ii]]), ,drop = F]
-        temp <- L_generate(coor.inuse, opt = "Tri.mesh")
-        
-        gene.exp.list[[ii]] <- gene.exp.inuse
-        L.list[[ii]] <- temp$L
         
         ICAp.res.inuse <- impact_adaptive(ICAp.res.tile$Z, gene.exp.list[[ii]] , query.L = L.list[[ii]], query.L1 = L1.grid[[ii]], query.L2 = L2.grid[[ii]], query.L4 = L4.arg, query.shur0 = shur0.grid[[ii]], to_drop = F, scale=1, max.iter = 200, cor.thr = 0.8, verbose =F)
         
         #Slide.LvPlot(coor.inuse, LVs= ICAp.res.inuse$B, gene.verbose = F, plot.all = T)
         B.list[[ii]] <- ICAp.res.inuse$B
         
-      }else{
-        
+      }else{        
         B.list[[ii]] <- NA
       }#else
     }#for ii
@@ -409,10 +426,10 @@ manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20
   #tile level: coor.tile, gene.exp.tile, B.aggregate, ICAp.res.tile
   
   #spot level: B.spot, B.list
-  B.spot <- do.call(cbind, B.list)[,colnames(coor)]
+  B.spot <- do.call(cbind, B.list)[,rownames(coor)]
   
   
-  return(list(coor.tile = coor.tile, gene.exp.tile = gene.exp.tile, B.aggregate = B.aggregate, dav.res.tile = ICAp.res.tile, B.list = B.list, B.spot = B.spot))
+  return(list(coor.tile = coor.tile, gene.exp.tile = gene.exp.tile, B.aggregate = B.aggregate, dav.res.tile = ICAp.res.tile, B.list = B.list, B.spot = B.spot, error = error.accum))
   
   
 }#manifoldDecomp.scalable
