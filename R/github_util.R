@@ -185,6 +185,7 @@ preprocess <- function(mat, coor, type = "rna", graph.opt = "Tri.mesh", frac.thr
 
   }#else
 
+  message(paste0(type, " normalization finishes."))
 
   #align the mat and coor again
   ################################################
@@ -197,6 +198,8 @@ preprocess <- function(mat, coor, type = "rna", graph.opt = "Tri.mesh", frac.thr
   ################################################
   temp <- L_generate(coor, opt = graph.opt)
   L <- temp$L
+
+  message(paste0("Graph generation finishes."))
 
   return(list(mat = Matrix::as.matrix(mat), coor = coor, L = L, L.visual = temp$L.visual))
 }#preprocess

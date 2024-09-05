@@ -4,7 +4,17 @@
 \alias{manifoldDecomp.scalable}
 \title{Scalable implementation}
 \usage{
-manifoldDecomp.scalable(gene.exp, coor, k.arg = 20, L4.arg = 50, max.iter = 10)
+manifoldDecomp.scalable(
+  gene.exp,
+  coor,
+  L2_number = 4000,
+  k.arg = 20,
+  L4.arg = 50,
+  max.iter = 10
+)
+}
+\arguments{
+\item{L2_number}{Number of meta spot expected. L2_number is not recommended to be higher than 3000 if you want to get results really fast.}
 }
 \description{
 Scalable implementation

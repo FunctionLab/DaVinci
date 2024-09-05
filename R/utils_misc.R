@@ -1,68 +1,4 @@
 # https://github.com/jmonlong/Hippocamplus/blob/master/content/post/2018-06-09-ClusterEqualSize.Rmd
-
-
-#' Tile the slice for scalable implementation
-#' @export
-tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
-  if (is.null(rownames(coord))){
-    stop("Input doesn't have rownames.")
-  }#if
-
-  #pre-set
-  L1_size <- 7000
-  #L2_number <- 1000 #about 1000 spots in the problem
-  message("L2_number is not recommended to be higher than 2000. Higher the number is, the more granularity you expect.")
-
-  #derived
-  L1_number <- nrow(coord)/L1_size #number
-  L2_size <- nrow(coord) %/% L2_number #balanced.cluster.size
-  message(paste0("Tile size is ", L2_size))
-
-
-  #calculate the L1 grid parameter
-  #################################
-  bbox <- sf::st_bbox(c(xmin = min(coord[,1]), ymin = min(coord[,2]), xmax = max(coord[,1]), ymax = max(coord[,2]) ))
-  xy_ratio <- (bbox$xmax-bbox$xmin)/(bbox$ymax-bbox$ymin)
-  ny <- ceiling(sqrt(L1_number/xy_ratio))
-  nx <- ceiling(ny*xy_ratio)
-  grid <- sf::st_make_grid(bbox, n = c(nx, ny), square = T)
-  pos <- sf::st_as_sf(as.data.frame(coord), coords = c("array_row","array_col"))
-
-  ids_L1 <- unlist(lapply(sf::st_intersects(pos, grid), function(sublist) sublist[1]))
-  names(ids_L1) <- rownames(coord)
-
-
-  #L2 fine grid
-  #################################
-  ids_L2 <- ids_L1
-  ids_L1_unique <- sort(unique(ids_L1))
-
-  for (ii in 1:length(ids_L1_unique)){
-    temp <- which(ids_L1==ids_L1_unique[ii])
-    if (length(temp)<L2_size){
-      ids_L2[temp] <- 1
-    }else{
-      ids_L2[temp] <- swk(coord[temp,], method = "balanced", L2norm = F, balanced.cluster.size = L2_size, random.seed = random.seed)
-    }#else
-
-  }#for ii
-
-  #combine together
-  #################################
-  grid_ids <- paste0(ids_L1, "_", ids_L2)
-  mapping <- 1:length(unique(grid_ids))
-  names(mapping) <- unique(grid_ids)
-  grid_ids <- mapping[grid_ids]
-
-  names(grid_ids) <- rownames(coord)
-  return(grid_ids)
-}#tile_the_slice
-
-
-
-
-
-
 #' Same Size Clustering
 #'
 #' This is a wrapper for several implementation that classify samples into
@@ -230,27 +166,95 @@ hcbottom <- function(mat,
 
 
 
+#' Tile the slice for scalable implementation
+#' @export
+tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
+  if (is.null(rownames(coord))){
+    stop("Input doesn't have rownames.")
+  }#if
+
+  #pre-set
+  L1_size <- 7000
+  #L2_number <- 1000 #about 1000 spots in the problem
+  message("L2_number is not recommended to be higher than 2000. Higher the number is, the more granularity you expect.")
+
+  #derived
+  L1_number <- nrow(coord)/L1_size #number
+  L2_size <- nrow(coord) %/% L2_number #balanced.cluster.size
+  message(paste0("Each tile includes ", L2_size, " spots."))
+
+
+  #calculate the L1 grid parameter
+  #################################
+  bbox <- sf::st_bbox(c(xmin = min(coord[,1]), ymin = min(coord[,2]), xmax = max(coord[,1]), ymax = max(coord[,2]) ))
+  xy_ratio <- (bbox$xmax-bbox$xmin)/(bbox$ymax-bbox$ymin)
+  ny <- ceiling(sqrt(L1_number/xy_ratio))
+  nx <- ceiling(ny*xy_ratio)
+  grid <- sf::st_make_grid(bbox, n = c(nx, ny), square = T)
+  pos <- sf::st_as_sf(as.data.frame(coord), coords = c("array_row","array_col"))
+
+  ids_L1 <- unlist(lapply(sf::st_intersects(pos, grid), function(sublist) sublist[1]))
+  names(ids_L1) <- rownames(coord)
+
+
+  #L2 fine grid
+  #################################
+  ids_L2 <- ids_L1
+  ids_L1_unique <- sort(unique(ids_L1))
+
+  for (ii in 1:length(ids_L1_unique)){
+    temp <- which(ids_L1==ids_L1_unique[ii])
+    if (length(temp)<L2_size){
+      ids_L2[temp] <- 1
+    }else{
+      ids_L2[temp] <- swk(coord[temp,], method = "balanced", L2norm = F, balanced.cluster.size = L2_size, random.seed = random.seed)
+    }#else
+
+  }#for ii
+
+  #combine together
+  #################################
+  grid_ids <- paste0(ids_L1, "_", ids_L2)
+  mapping <- 1:length(unique(grid_ids))
+  names(mapping) <- unique(grid_ids)
+  grid_ids <- mapping[grid_ids]
+
+  names(grid_ids) <- rownames(coord)
+  return(grid_ids)
+}#tile_the_slice
+
+
+
+
+
+
 
 #' Scalable implementation
 #' 
+#' @param L2_number Number of meta spot expected. L2_number is not recommended to be higher than 3000 if you want to get results really fast. 
+#' 
 #' @export
-manifoldDecomp.scalable <- function(gene.exp, coor, k.arg = 20, L4.arg = 50, max.iter = 10){
+manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20, L4.arg = 50, max.iter = 10){
   
   #step 1: generate a partition
   #############################################################################
-  grid_ids <- tile_the_slice(coor, random.seed = 1, L2_number = 4000)
-  
+  if (nrow(coor) < L2_number*k.arg){
+    L2_number <- nrow(coor) %/% k.arg
+    message( paste0("L2_number is reset to ", L2_number, " to fulfill the rank requirement."))
+  }#if
+
+  grid_ids <- tile_the_slice(coor, random.seed = 1, L2_number = L2_number)
+  message("Tiling finishes.")
   
   #mean aggregation per tile
   ##################################
   unique_grid_ids <- unique(grid_ids)
   tile_list <- lapply(unique_grid_ids, function(x){which(grid_ids==x)})
   tile_aggregation <- lapply(tile_list, function(x){apply(gene.exp[,names(x),drop=F],1,mean)} )
-  tile_mat <- do.call(cbind, tile_aggregation)
-  colnames(tile_mat) <- paste0("Tile_", unique_grid_ids)
+  tile.mat <- do.call(cbind, tile_aggregation)
+  colnames(tile.mat) <- paste0("Tile_", unique_grid_ids)
   names(tile_list) <- paste0("Tile_", unique_grid_ids)
-  
-  
+    
   
   #keep the coordinates for each tile
   ##################################
@@ -258,16 +262,22 @@ manifoldDecomp.scalable <- function(gene.exp, coor, k.arg = 20, L4.arg = 50, max
   coor.tile <- do.call(rbind, coor_aggregation)
   colnames(coor.tile) <- c("array_col", "array_row")
   rownames(coor.tile) <- paste0("Tile_",seq_along(coor.tile[,1]))
-  
+  message("Aggregation per tile finishes.")
+
   
   #step 2: tile-level decomposition, get Z
   ##################################
-  #tile_mat, coor.tile
+  #tile.mat, coor.tile
   fin.tile <- DAVINCHI::preprocess(tile.mat, coor.tile, type = "rna", graph.opt = "Tri.mesh",  frac.thr = 0.95)
   
   gene.exp.tile <- fin.tile$mat
   L.tile <- fin.tile$L
-  
+
+  #modify gene.exp and coor accordingly
+  gene.exp <- gene.exp[rownames(gene.exp.tile),]
+
+
+  message("Tile-level decomposition starts.")  
   ICAp.res.tile0 <- manifoldDecomp_adaptive(gene.exp.tile, L.tile, k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T)
   
   
@@ -284,7 +294,7 @@ manifoldDecomp.scalable <- function(gene.exp, coor, k.arg = 20, L4.arg = 50, max
   for (ii in 1:length(tile_list)){
     #print(ii)
     if (density.grid[ii] > 3){
-      gene.exp.inuse <- gene.exp[,names(tile_list[[ii]])]
+      gene.exp.inuse <- as.matrix(gene.exp[,names(tile_list[[ii]])])
       
       coor.inuse <- coor[names(tile_list[[ii]]), ,drop = F]
       temp <- L_generate(coor.inuse, opt = "Tri.mesh")
@@ -308,7 +318,6 @@ manifoldDecomp.scalable <- function(gene.exp, coor, k.arg = 20, L4.arg = 50, max
       L1.grid[[ii]] <- NA  
       L2.grid[[ii]] <- NA
       shur0.grid[[ii]] <- NA
-      L.grid[[ii]] <- NA
       B.list[[ii]] <- NA
     }#else
     
@@ -330,6 +339,7 @@ manifoldDecomp.scalable <- function(gene.exp, coor, k.arg = 20, L4.arg = 50, max
   error.accum <- c(error.relative)
   
   count <- 0
+  message("Iteration starts.")
   
   while ( (error.relative >=1e-3) & (count <= max.iter) ){
     
