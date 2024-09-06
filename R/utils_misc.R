@@ -191,8 +191,9 @@ hcbottom <- function(mat,
 
 
 #' Tile the slice for scalable implementation
+#' @import sf
 #' @export
-tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
+tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000, tile.minimum = NULL){
   if (is.null(rownames(coord))){
     stop("Input doesn't have rownames.")
   }#if
@@ -208,7 +209,7 @@ tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
   message(paste0("Each tile includes ", L2_size, " spots."))
 
 
-  #calculate the L1 grid parameter
+  #tile the slice
   #################################
   bbox <- sf::st_bbox(c(xmin = min(coord[,1]), ymin = min(coord[,2]), xmax = max(coord[,1]), ymax = max(coord[,2]) ))
   xy_ratio <- (bbox$xmax-bbox$xmin)/(bbox$ymax-bbox$ymin)
@@ -217,6 +218,47 @@ tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000){
   grid <- sf::st_make_grid(bbox, n = c(nx, ny), square = T)
   pos <- sf::st_as_sf(as.data.frame(coord), coords = c("array_row","array_col"))
 
+
+  #adjust the tile
+  #################################
+  point_in_grid <- sf::st_intersects(grid, pos)
+  point_counts <- lengths(point_in_grid)
+  exclude_index <- sort(which(point_counts < tile.minimum), decreasing = T)
+  
+  if (length(exclude_index)>0){
+    
+    for (cell in exclude_index){
+      
+      if (point_counts[cell]==0){
+        grid <- grid[-cell]
+      }else{
+        
+        adjacency_matrix <- sf::st_touches(grid)
+        adjacent_cells <- adjacency_matrix[[cell]]
+        
+        #merge with the first cell
+        target_cell <- setdiff( adjacent_cells, exclude_index)[1] 
+        
+        if (is.na(target_cell)){
+          stop("No cell survives. Need to check carefully.")
+        }else{
+          merged_polygon <- sf::st_union(grid[c(cell, target_cell)])
+          grid[target_cell] <- merged_polygon
+          grid <- grid[-cell]
+        }#else
+      }#else
+      
+    }#for cell
+    
+  }#if
+  
+  #validation
+  #point_in_grid <- sf::st_intersects(grid, pos)
+  #point_counts <- lengths(point_in_grid)
+  #table(point_counts)
+  
+  #calculate the L1 label
+  #################################
   ids_L1 <- unlist(lapply(sf::st_intersects(pos, grid), function(sublist) sublist[1]))
   names(ids_L1) <- rownames(coord)
 
@@ -267,7 +309,7 @@ manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20
     message( paste0("L2_number is reset to ", L2_number, " to fulfill the rank requirement."))
   }#if
 
-  grid_ids <- tile_the_slice(coor, random.seed = 1, L2_number = L2_number)
+  grid_ids <- tile_the_slice(coor, random.seed = 1, L2_number = L2_number, tile.minimum = k.arg+1)
   message("Tiling finishes.")
   
   #mean aggregation per tile

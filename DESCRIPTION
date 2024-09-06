@@ -22,7 +22,8 @@ Imports:
     mclust,
     dendextend,
     BiocNeighbors,
-    harmony
+    harmony,
+    sf
 Suggests:
     enrichR,
     Seurat,
