@@ -10,7 +10,8 @@ manifoldDecomp.scalable(
   L2_number = 4000,
   k.arg = 20,
   L4.arg = 50,
-  max.iter = 10
+  max.iter = 10,
+  frac.thr = 0.95
 )
 }
 \arguments{

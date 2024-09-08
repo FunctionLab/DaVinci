@@ -226,7 +226,7 @@ tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000, tile.minimu
   exclude_index <- sort(which(point_counts < tile.minimum), decreasing = T)
   
   if (length(exclude_index)>0){
-    
+    message("Tile is being adjusted to include enough points.")
     for (cell in exclude_index){
       
       if (point_counts[cell]==0){
@@ -300,8 +300,32 @@ tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000, tile.minimu
 #' @param L2_number Number of meta spot expected. L2_number is not recommended to be higher than 3000 if you want to get results really fast. 
 #' 
 #' @export
-manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20, L4.arg = 50, max.iter = 10){
+manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20, L4.arg = 50, max.iter = 10, frac.thr = 0.95){
   
+  if (!all(colnames(gene.exp)==rownames(coor))){
+      stop("gene.exp and coor don't align.")
+  }#if
+
+  #step 0: filter spot without normalization
+  #############################################################################
+  use_gene <- which(Matrix::rowSums(gene.exp==0)/ncol(gene.exp) < frac.thr)
+  if (is.data.frame(gene.exp)){
+    gene.exp <- as.matrix(gene.exp[use_gene,])
+  }else{
+    gene.exp <- gene.exp[use_gene,]
+  }#else
+
+  #check standard deviation
+  gene.exp <- gene.exp[which(apply(gene.exp,1,sd)>0),]
+
+  #remove all zero cells
+  gene.exp <- gene.exp[, which( Matrix::colSums(gene.exp)>0)]
+  
+  #remember to filter coor accordingly
+  coor <- coor[colnames(gene.exp),]
+
+
+
   #step 1: generate a partition
   #############################################################################
   if (nrow(coor) < L2_number*k.arg){
@@ -471,6 +495,8 @@ manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20
   B.spot <- do.call(cbind, B.list)[,rownames(coor)]
   
   
+  colnames(B.aggregate) <- rownames(coor.tile)
+
   return(list(coor.tile = coor.tile, gene.exp.tile = gene.exp.tile, B.aggregate = B.aggregate, dav.res.tile = ICAp.res.tile, B.list = B.list, B.spot = B.spot, error = error.accum))
   
   
