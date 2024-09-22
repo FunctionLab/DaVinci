@@ -8,6 +8,7 @@ Horizontal.Integration(
   Y.list,
   L.list,
   coor.list,
+  dav.res.list = NULL,
   k.args = rep(12, length(Y.list)),
   LVs.filter.thr = 0.8,
   mod = "all",

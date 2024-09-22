@@ -231,7 +231,7 @@ reciprocal_deco <- function(proj, option = "L2norm", LVs.filter = F, LVs.filter.
 #' 
 #' @import harmony
 #' @export
-Horizontal.Integration <- function(Y.list, L.list, coor.list, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = T){
+Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NULL, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = T){
   
   if ((length(Y.list) > 30) & (mod == "all")){
     message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
@@ -239,11 +239,14 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, k.args = rep(12, l
   
   #single slice
   ##########################################################
-  dav.res.list <- list()
+  if (is.null(dav.res.list)){
+    dav.res.list <- list()
   
-  for (ii in 1:length(Y.list)){
-    dav.res.list[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.args[ii], L4 = 50, L4_adaptive = 2, to_drop = T, save.complete = T)
-  }#for ii
+    for (ii in 1:length(Y.list)){
+      dav.res.list[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.args[ii], L4 = 50, L4_adaptive = 2, to_drop = T, save.complete = T)
+    }#for ii
+    
+  }#if
   
   #horizontal integration  
   ##########################################################
