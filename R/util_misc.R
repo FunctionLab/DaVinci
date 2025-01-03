@@ -166,7 +166,7 @@ if (!requireNamespace("Seurat", quietly = TRUE)) {
       #partition <- leiden::leiden(leiden.input, resolution_parameter = ld.resolution)  
       partition <- Seurat:::RunLeiden(leiden.input, resolution.parameter = ld.resolution, method = "matrix")
     }else if (method == "louvain"){
-      partition <- Seurat:::RunModularityClustering(leiden.input, resolution = ld.resolution, algorithm = 1)
+      partition <- Seurat:::RunModularityClustering(leiden.input, resolution = ld.resolution, algorithm = 1, print.output = F)
     }#else if
    
   }else if(method == "balanced"){
@@ -703,7 +703,7 @@ Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, m
       if (method == "leiden"){
           partition <-  Seurat:::RunLeiden(input, resolution.parameter = args[ii], method = "matrix")
       }else if (method == "louvain"){
-          partition <- Seurat:::RunModularityClustering(input, resolution = args[ii], algorithm = 1)
+          partition <- Seurat:::RunModularityClustering(input, resolution = args[ii], algorithm = 1, print.output = F)
         
       }#else if
       par.list[[ii]] <- partition

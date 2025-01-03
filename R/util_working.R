@@ -12,7 +12,7 @@ require(emojifont) #recommended but not required
 #' Automatically tune the number of latent variables
 #' @importFrom rsvd rsvd
 #' @export
-AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.arg.list=exp(seq(log(100), log(10), length.out = length(k.arg.list))), frac.impute=0.1, frac.seed = 1 ){
+AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.arg.list=exp(seq(log(100), log(10), length.out = length(k.arg.list))), frac.impute=0.1, frac.seed = 1, pos.B =F ){
   #create the dataset
   nonzero.index <- which(gene.exp!=0)
   set.seed(frac.seed)
@@ -36,7 +36,7 @@ AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.
   for (ii in 1:length(k.arg.list)){
     print(ii)
 
-    ICAp.res.impute <- manifoldDecomp_adaptive(gene.exp.hide, L, k = k.arg.list[ii], L4 = L4.arg.list[ii], L4_adaptive = 2, to_drop = T, svdres = svdres)
+    ICAp.res.impute <- manifoldDecomp_adaptive(gene.exp.hide, L, k = k.arg.list[ii], L4 = L4.arg.list[ii], L4_adaptive = 2, to_drop = T, svdres = svdres, pos.B = pos.B)
 
     #reconstruction error
     Y.recon <- ICAp.res.impute$Z %*% ICAp.res.impute$B
@@ -560,7 +560,7 @@ leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adap
 
 
 
-md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = 0.8, early_flag = T){
+md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, pos.B, thr = 0.8, early_flag = T){
 
   Bdiff=Inf
   BdiffTrace=double()
@@ -596,7 +596,20 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
     total <- 2*t(Z) %*% Y
 
     B <- sylvester_pre(left, right.shur$U, right.shur$S, total)
-
+if (pos.B == "hard"){
+      B[B<0] <- 0  
+    }else if (pos.B == "adaptive"){
+      
+      if(i>=adaptive.iter && adaptive.frac>0){
+        cutoffs=apply(B, 1, getT)
+        for(j in 1:nrow(B)){
+          B[j,B[j,]<cutoffs[j]]=0
+        }#for j
+      }else{
+        B[B<0] <- 0
+      }#else
+      
+    }#else if
 
     #update error
     ######################################
@@ -643,20 +656,27 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
 
   #L4_adaptive
   ###########################################
-  B.cor.res <- cor(t(B))
-  B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
-  #pheatmap::pheatmap(B.cor.res, display_numbers = T, fontsize = 15)
-
-
-  #print(sum(B.cor.val>=thr))
-  if (sum(B.cor.val>=thr)==1){
-    flag <- "Done"
-  }else if (sum(B.cor.val>=thr)>1){
+if (min(apply(B, 1, sd) ) < 1e-7){
+    
     flag <- "Shrink"
+    
   }else{
-    flag <- "Explode"
+    
+    B.cor.res <- cor(t(B))
+    B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
+    #pheatmap::pheatmap(B.cor.res, display_numbers = T, fontsize = 15)
+    
+    
+    #print(sum(B.cor.val>=thr))
+    if (sum(B.cor.val>=thr)==1){
+      flag <- "Done"
+    }else if (sum(B.cor.val>=thr)>1){
+      flag <- "Shrink" #decrease L4
+    }else{
+      flag <- "Explode" #increase L4
+    }#else
+    
   }#else
-
 
   return(list(flag = flag, B = B, Z =Z, Zraw = Zraw))
 }#md.default
@@ -664,15 +684,25 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
 
 
 
-
 #' Main function
+#' 
+#' @param pos.B Three options are available: 1) "hard", 2) "adaptive" and 3) False (default).
+#'
+#' @return A list of results.
 #' @export
-manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NULL, shur0 = NULL, max.iter=200, tol=5e-6, trace=F,rseed=NULL, B=NULL, scale=1,  adaptive.frac=0.05, adaptive.iter=30, L4_adaptive =2, to_drop =T, pos = T, cor.thr = 0.8, save.complete = F, verbose = T){
+manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NULL, shur0 = NULL, max.iter=200, tol=5e-6, trace=F,rseed=NULL, B=NULL, scale=1,  adaptive.frac=0.05, adaptive.iter=30, L4_adaptive =2, to_drop =T, pos = T, pos.B = F, cor.thr = 0.8, save.complete = F, verbose = T){
 
   pos.adj=3
   ng=nrow(Y)
   ns=ncol(Y)
 
+  
+  #standard deviation check
+  feature.sd <- apply(Y, 1, sd)
+  if (max(feature.sd) < 1e-2){
+    stop("The overll variation is too small. Please consider other normalization strategies before running the main function.")
+  }#if
+  
   if (to_drop){
     k <- k+1
 
@@ -709,7 +739,19 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
     svdres=rotateSVD(svdres)
 
     #  show(svdres$d[k])
-  }#svdres
+  }else if (svdres == "nmf"){
+    
+    #use nmf to initailize but also run svd to get L1, L2, etc
+    set.seed(123)
+    svdres=rsvd(Y, k = k) 
+    svdres=rotateSVD(svdres)
+    
+    #svdres$u, svdres$v
+    nmf.res <- RcppML::nmf(Y, k = k, verbose = F, seed = 1)
+    svdres$u <- nmf.res$w
+    svdres$v <- t(nmf.res$h)
+    
+  }#else
 
 
   #L1
@@ -788,7 +830,7 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
   }#if verbose
 
 
-  md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = cor.thr)
+  md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, pos.B, thr = cor.thr)
 
 
   if (md.run$flag == "Explode"){
@@ -831,10 +873,10 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
 
     #if L4_left and L4_right is too close, then Done
     if (abs(L4_left-L4_right) < 0.1){
-      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = cor.thr, early_flag = F)
+      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, pos.B, thr = cor.thr, early_flag = F)
       md.run$flag <- "Done"
     }else{
-      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, thr = cor.thr, early_flag = T)
+      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, pos.B, thr = cor.thr, early_flag = T)
     }#else
 
 

@@ -24,10 +24,17 @@ manifoldDecomp_adaptive(
   L4_adaptive = 2,
   to_drop = T,
   pos = T,
+  pos.B = F,
   cor.thr = 0.8,
   save.complete = F,
   verbose = T
 )
+}
+\arguments{
+\item{pos.B}{Three options are available: 1) "hard", 2) "adaptive" and 3) False (default).}
+}
+\value{
+A list of results.
 }
 \description{
 Main function

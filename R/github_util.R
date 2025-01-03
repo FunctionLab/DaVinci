@@ -139,7 +139,12 @@ LSI_normalization <- function(atac, method = "1", scale.factor = 1e5, peak.filte
 
   #final product
   #############################################
-  output <- diag(idf)%*%tf
+  idf.diag <- Matrix::sparseMatrix(i = 1:length(idf),
+                                   j = 1:length(idf),
+                                   x = idf,
+                                   dims = c(length(idf), length(idf)))
+  #idf.diag <- diag(idf)
+  output <- idf.diag %*%tf
 
   if (method==1){
     output <- log1p(output*scale.factor)
