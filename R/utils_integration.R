@@ -15,6 +15,17 @@ BiModalIntegration <- function(modal.1, modal.2, mat.1=modal.1, mat.2=modal.2, n
     stop("Seurat is required for this function but is not installed. Please install it.")
   }#if
 
+  if ( is.null(rownames(modal.1)) | is.null(rownames(modal.2)) ){
+    stop("At least one object has no valid row names. Please examine and assign proper row names to modal.1 and modal.2.")
+  }else if ( !all( sort(rownames(modal.1))== sort(rownames(modal.2)) ) ){
+    stop("Row names of modal.1 and modal.2 don't align. Please check carefully.")
+  }else{
+    #make sure modal.1 and modal.2 aligned
+    modal.1 <- modal.1[rownames(modal.2),]
+    message("Alignment test passed")
+  }#else
+
+
   #L2 normalization
   #################################
   if (L2norm){

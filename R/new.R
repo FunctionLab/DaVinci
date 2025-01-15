@@ -35,7 +35,7 @@ leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adap
       
       if (abs(reso.left-reso.right) < 1e-4){
         message("Re-initalize.") 
-        return( leiden_adaptive(nn, num.of.cluster, resolution.start = reso.right+0.1, adaptive.size, method, verbose) )
+        return( leiden_adaptive(nn, num.of.cluster, resolution.start = resolution.start+0.1, adaptive.size, method, verbose) )
         
       }else{
       

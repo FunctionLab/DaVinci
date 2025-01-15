@@ -123,13 +123,8 @@ reciprocal_with_Z <- function(Y.list, Lap, ICAp.res.list, ICAp.res.list.referenc
 
 
 
+reciprocal_concat <- function(proj, option = "L2norm"){
 
-
-#construct the B.list and global LVs with different options
-#' Finalize the integration by filtering out duplicated LVs based on similarity and strategy
-#' @export
-reciprocal_deco <- function(proj, option = "L2norm", LVs.filter = F, LVs.filter.thr = 0.9, mod = "all"){
-  
   num.of.slice <- length(proj)
   
   #row names and colnames
@@ -139,7 +134,7 @@ reciprocal_deco <- function(proj, option = "L2norm", LVs.filter = F, LVs.filter.
     row.names <- c(row.names, paste0(ii, "_", rownames(proj[[ii]][[ii]]$B)) )
     col.names <- c(col.names, paste0(ii, "_", colnames(proj[[ii]][[ii]]$B)) )
   }#for ii
-  
+   
   
   #merge
   dim.list <- list()
@@ -157,17 +152,23 @@ reciprocal_deco <- function(proj, option = "L2norm", LVs.filter = F, LVs.filter.
   #construct the LVs
   ###########################################
   LVs <- do.call(rbind, dim.list)
-  
+
   rownames(LVs) <- row.names
   colnames(LVs) <- col.names
   
-  
-  
+  return(LVs)
+}#reciprocal_concat
+
+
+
+#construct the B.list and global LVs with different options
+#' Finalize the integration by filtering out duplicated LVs based on similarity and strategy
+#' @export
+reciprocal_deco <- function(LVs, LVs.filter.thr = 0.9, mod = "all"){
+    
   #filter by correlation
   ###########################################
-  
-  if (LVs.filter){
-  
+   
     
     if (mod == "all"){
       
@@ -210,8 +211,6 @@ reciprocal_deco <- function(proj, option = "L2norm", LVs.filter = F, LVs.filter.
       
     }#else if mod == "common"
     
-  }#if LVs.filter
-  
   return(LVs)
 }#reciprocal_deco
 
@@ -231,7 +230,7 @@ reciprocal_deco <- function(proj, option = "L2norm", LVs.filter = F, LVs.filter.
 #' 
 #' @import harmony
 #' @export
-Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NULL, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = T){
+Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NULL, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = F, L2.option = "L2norm", LV.filter = T){
   
   if ((length(Y.list) > 30) & (mod == "all")){
     message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
@@ -251,15 +250,25 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NUL
   #horizontal integration  
   ##########################################################
   message("Reciprocal projection starts.")
-  proj <- reciprocal_default(Y.list, L.list, dav.res.list)
-  LVs <- reciprocal_deco(proj, option = "L2norm", LVs.filter = T, LVs.filter.thr = LVs.filter.thr, mod = mod)
   
+  proj <- reciprocal_default(Y.list, L.list, dav.res.list)
+  LVs <- reciprocal_concat(proj, option = L2.option)
+  
+
+
+  if (LV.filter){
+    LVs <- reciprocal_deco(LVs, LVs.filter.thr = LVs.filter.thr, mod = mod)
+  }#if LV.filter
+    
   
   #remove LV 1
-  if (remove.LV1){
-    LVs <- LVs[which(!grepl("LV 1$", rownames(LVs))),]  
-  }#if remove.L1
+  #if (remove.LV1){
+  #  LVs <- LVs[which(!grepl("LV 1$", rownames(LVs))),]  
+  #}#if remove.L1
   
+  if (remove.LV1){
+      LVs <- LVs[which(!rownames(LVs) %in% remove.LV1),]
+  }#if 
   
   #harmony
   ##########################################################
@@ -273,6 +282,71 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NUL
   return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id))
   
 }#Horizontal.Integration
+
+
+
+
+
+
+Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list = NULL, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = F, L2.option = "L2norm", LV.filter = T){
+  
+  if ((length(Y.list) > 30) & (mod == "all")){
+    message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
+  }#if
+  
+  #single slice
+  ##########################################################
+  if (is.null(dav.res.list)){
+    dav.res.list <- list()
+  
+    for (ii in 1:length(Y.list)){
+      dav.res.list[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.args[ii], L4 = 50, L4_adaptive = 2, to_drop = T, save.complete = T)
+    }#for ii
+    
+  }#if
+  
+  #horizontal integration  
+  ##########################################################
+  message("Reciprocal projection starts.")
+  
+  proj <- reciprocal_default(Y.list, L.list, dav.res.list)
+  LVs <- reciprocal_concat(proj, option = L2.option)
+  
+
+  #harmony
+  ##########################################################
+  message("Batch correction starts.")
+  LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
+
+  rownames(LVs_embeddings) <- colnames(LVs)
+  
+  slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
+
+
+
+  #Deco
+  ##########################################################
+  if (LV.filter){
+    LVs_embeddings <- reciprocal_deco(t(LVs_embeddings), LVs.filter.thr = LVs.filter.thr, mod = mod)
+    LVs_embeddings <- t(LVs_embeddings)
+  }#if LV.filter
+    
+  
+
+  
+  #remove LV 1
+  #if (remove.LV1){
+  #  LVs_embeddings <- LVs_embeddings[,which(!grepl("LV 1$", colnames(LVs_embeddings)))]  
+  #}#if remove.L1
+  
+  if (remove.LV1){
+      LVs_embeddings <- LVs_embeddings[,which(!colnames(LVs_embeddings) %in% remove.LV1)]
+  }#if   
+   
+
+  return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id))
+  
+}#Horizontal.Integration.first
 
 
 
