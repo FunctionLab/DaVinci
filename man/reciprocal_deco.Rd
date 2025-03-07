@@ -4,13 +4,7 @@
 \alias{reciprocal_deco}
 \title{Finalize the integration by filtering out duplicated LVs based on similarity and strategy}
 \usage{
-reciprocal_deco(
-  proj,
-  option = "L2norm",
-  LVs.filter = F,
-  LVs.filter.thr = 0.9,
-  mod = "all"
-)
+reciprocal_deco(LVs, LVs.filter.thr = 0.9, mod = "all")
 }
 \description{
 Finalize the integration by filtering out duplicated LVs based on similarity and strategy

@@ -260,7 +260,7 @@ ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio =
 #' Visualize discrete variables only with coordinate information
 #' @import ggpubr
 #' @export
-scatter.DiscretePlot <- function(coor, cluster.label, pt.size = 2, ratio = NULL, plot.all = F){
+scatter.DiscretePlot <- function(coor, cluster.label, pt.size = 2, ratio = NULL, plot.all = F, to_highlight = NULL){
 
   cluster.label <- as.character(cluster.label)
   cluster.unique <- sort(unique(cluster.label))
@@ -287,8 +287,22 @@ scatter.DiscretePlot <- function(coor, cluster.label, pt.size = 2, ratio = NULL,
     p <- ggarrange(plotlist = p)
 
   }else{
+    
+    if (is.null(to_highlight)){
 
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+geom_point(size = pt.size)+theme_void()+colorPalette(dat.plot$cluster, fill = F)
+        p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+geom_point(size = pt.size)+theme_void()+colorPalette(dat.plot$cluster, fill = F)
+
+    }else{
+      #highlight one specific cluster
+
+      values <- rep("grey", length(cluster.unique))
+      names(values) <- cluster.unique
+      values[as.character(to_highlight)] <- "red"
+
+      p <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::scale_color_manual(values = values)
+
+    }#else
+    
     if (!is.null(ratio)){
           p <- p+ggplot2::theme(aspect.ratio = ratio)
     }#if
@@ -410,15 +424,27 @@ LvPlot_fast <- function(dat, val, pt.size=2, ratio = 1, use.myratio=F, plot.all 
 #' Visualize continous variables only with coordinate information
 #' @import ggpubr
 #' @export
-scatter.FeaturePlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verbose = F, pt.size = 2, ratio = NULL, x.offset = 1.05, font.size = 7, plot.all = F){
+scatter.FeaturePlot <- function(
+  coor, 
+  loading=NULL, 
+  LVs, 
+  LV.index = 1, 
+  gene.verbose = F, 
+  pt.size = 2, 
+  ratio = NULL, 
+  x.offset = 1.05, 
+  font.size = 7, 
+  plot.all = F
+  ){
 
   if (gene.verbose & is.null(loading)){
     stop("loading can't be NULL if gene names will be printed out")
   }#if
 
+  #case 1: single vector
+  #no gene verbose in this case
   if (is.numeric(LVs) & is.vector(LVs)){
-    #no gene verbose in this case
-
+    
     dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs)
     p <- ggplot2::ggplot(dat.plot, aes(x=x,y = -y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
     
@@ -427,25 +453,31 @@ scatter.FeaturePlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verb
     }#if
 
   }else{
+    
+    #case 2: complete matrix
     if (nrow(LVs) > ncol(LVs)){
       LVs <- t(LVs)
     }#if
 
-  #plot all rows
+  #case 2.1: plot all rows
   if (plot.all){
     #no gene.verbose in this case
     p <- list()
 
+    if (is.null(rownames(LVs))){
+        rownames(LVs) <- paste0("LV ", 1:nrow(LVs))
+    }#if
+
     for (ii in 1:nrow(LVs)){
       dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[ii,])
-      p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", ii))+ggplot2::theme(aspect.ratio = ratio)
+      p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(rownames(LVs)[ii])+ggplot2::theme(aspect.ratio = ratio)
     }#for ii
 
     p <- ggarrange(plotlist = p)
 
   }else{
-    #plot one specific row
-    print(paste0("LV ", LV.index))
+    #case 2.2: plot one specific row
+    message(LV.index, "th row.")
 
     if (gene.verbose){
       print(sort(loading[,LV.index], decreasing = T)[1:10])
@@ -453,7 +485,7 @@ scatter.FeaturePlot <- function(coor, loading=NULL, LVs, LV.index = 1, gene.verb
 
     dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[LV.index,])
 
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(paste0("LV ", LV.index))+ggplot2::theme(aspect.ratio = ratio)
+    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(rownames(LVs)[LV.index])+ggplot2::theme(aspect.ratio = ratio)
 
     if (gene.verbose){
       p <- p+annotate("text", x = max(dat.plot$x)*x.offset , y = median(dat.plot$y), label = paste(names(sort(loading[,LV.index], decreasing = T)[1:15]), collapse = "\n"), size = font.size)

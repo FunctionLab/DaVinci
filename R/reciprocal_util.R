@@ -175,19 +175,45 @@ reciprocal_deco <- function(LVs, LVs.filter.thr = 0.9, mod = "all"){
       #use as many LVs < LVs.filter.thr as possible to generate the final LVs in use
       
       cor.res <- cor(t(LVs))
+      
       diag(cor.res) <- 0
       cor.res[lower.tri((cor.res))] <- 0
-      #iteratively remove the correlations
-      while (max(cor.res)> LVs.filter.thr){
+
+      cor.to_drop <- which(cor.res > LVs.filter.thr, arr.ind = T)
+      cor.to_drop.cor <- which(cor.res > LVs.filter.thr, arr.ind = F)
+      cor.to_drop.cor <- cor.res[cor.to_drop.cor]
+      
+      cor.to_drop <- as.data.frame(cor.to_drop)
+      cor.to_drop$cor <- cor.to_drop.cor
+      cor.to_drop <- cor.to_drop[order(cor.to_drop$cor, decreasing = T),]
+
+      LV.to_drop <- c()
+      while(nrow(cor.to_drop)>0){
+          LV.index <- max(cor.to_drop[1,1:2])
+          LV.to_drop <- c(LV.to_drop, LV.index)
+          tmp <- which(cor.to_drop[,1]!=LV.index & cor.to_drop[,2]!=LV.index)
+          cor.to_drop <- cor.to_drop[tmp,]
+      }#while
+
+      LVs <- LVs[-LV.to_drop,]
+
+
+      #not efficient
+      if (F){
+          #iteratively remove the correlations
+          while (max(cor.res)> LVs.filter.thr){
         #remove the larger LV index
         LV.to_drop <- max(which(cor.res==max(cor.res[upper.tri(cor.res)]), arr.ind = T))
         LVs <- LVs[-LV.to_drop,]
         
-        cor.res <- cor(t(LVs))
-        diag(cor.res) <- 0
-        cor.res[lower.tri((cor.res))] <- 0
+        cor.res <- cor.res[-LV.to_drop, -LV.to_drop]
+        #cor.res <- cor(t(LVs))
+        #diag(cor.res) <- 0
+        #cor.res[lower.tri((cor.res))] <- 0
       }#while 
    
+      }#if F
+      
          
     }else if (mod == "common"){
       
@@ -252,15 +278,19 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NUL
   message("Reciprocal projection starts.")
   
   proj <- reciprocal_default(Y.list, L.list, dav.res.list)
+  message("Projection finishes.")
+
   LVs <- reciprocal_concat(proj, option = L2.option)
-  
+  message("Concatenation finishes.")
 
 
+  message("Select the principal axis.")
   if (LV.filter){
     LVs <- reciprocal_deco(LVs, LVs.filter.thr = LVs.filter.thr, mod = mod)
   }#if LV.filter
-    
+  message("Selection finishes.")
   
+
   #remove LV 1
   #if (remove.LV1){
   #  LVs <- LVs[which(!grepl("LV 1$", rownames(LVs))),]  
@@ -274,8 +304,10 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NUL
   ##########################################################
   message("Batch correction starts.")
   LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
-
   rownames(LVs_embeddings) <- colnames(LVs)
+  message("Batch correction finishes.")
+
+
   slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
   
   
@@ -287,7 +319,8 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NUL
 
 
 
-
+# harmony first, then filter LVs based on the correlation
+# instead of filtering LVs first and then running harmony
 Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list = NULL, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = F, L2.option = "L2norm", LV.filter = T){
   
   if ((length(Y.list) > 30) & (mod == "all")){
@@ -309,16 +342,22 @@ Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list
   ##########################################################
   message("Reciprocal projection starts.")
   
+  ptm <- proc.time()
   proj <- reciprocal_default(Y.list, L.list, dav.res.list)
-  LVs <- reciprocal_concat(proj, option = L2.option)
+  print(proc.time()-ptm)
+  message("Projection finishes.")
   
+  LVs <- reciprocal_concat(proj, option = L2.option)
+  message("Concatenation finishes.")
 
   #harmony
   ##########################################################
   message("Batch correction starts.")
+  ptm <- proc.time()
   LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
-
+  print(proc.time()-ptm)
   rownames(LVs_embeddings) <- colnames(LVs)
+  message("Batch correction finishes.")
   
   slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
 
@@ -326,14 +365,16 @@ Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list
 
   #Deco
   ##########################################################
+  message("Select the principal axis.")
   if (LV.filter){
+    ptm <- proc.time()
     LVs_embeddings <- reciprocal_deco(t(LVs_embeddings), LVs.filter.thr = LVs.filter.thr, mod = mod)
+    print(proc.time()-ptm)
     LVs_embeddings <- t(LVs_embeddings)
   }#if LV.filter
+  message("Selection finishes.")
+  
     
-  
-
-  
   #remove LV 1
   #if (remove.LV1){
   #  LVs_embeddings <- LVs_embeddings[,which(!grepl("LV 1$", colnames(LVs_embeddings)))]  
@@ -347,6 +388,9 @@ Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list
   return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id))
   
 }#Horizontal.Integration.first
+
+
+
 
 
 

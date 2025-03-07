@@ -8,7 +8,9 @@ leiden_adaptive(
   nn,
   num.of.cluster = 5,
   resolution.start = 0.5,
-  adaptive.size = 2
+  adaptive.size = 2,
+  method = "louvain",
+  verbose = T
 )
 }
 \description{

@@ -246,7 +246,7 @@ impact_adaptive <- function(reference.Z, query.gene.exp, query.L, query.L1 = NUL
 
 #use the fixed L4
 #' Used by reciprocal_default() and reciprocal_with_Z()
-impact <- function(reference.Z, query.gene.exp, query.L, query.L4, query.shur0 = NULL, query.ICAp.res = NULL, scale=1, max.iter = 200, cor.thr = 0.8, save.complete=T){
+impact <- function(reference.Z, query.gene.exp, query.L, query.L4, query.shur0 = NULL, query.ICAp.res = NULL, scale=1, max.iter = 200, cor.thr = 0.8, save.complete=F){
   pos.adj <- 3
   
   k <- ncol(reference.Z)
@@ -306,7 +306,8 @@ impact <- function(reference.Z, query.gene.exp, query.L, query.L4, query.shur0 =
   if (save.complete){
     return(list(B=B, L1 = L1, L2 = L2, L4 = L4, k = k, query.shur0 = query.shur0, right.shur = right.shur, reference.Z = reference.Z, query.gene.exp = query.gene.exp, query.L = query.L))
   }else{
-    return(list(B=B, L1 = L1, L2 = L2, L4 = L4, k = k, query.shur0 = query.shur0, right.shur = right.shur))
+    return(list(B=B, L1 = L1, L2 = L2, L4 = L4, k = k))
+    #return(list(B=B, L1 = L1, L2 = L2, L4 = L4, k = k, query.shur0 = query.shur0, right.shur = right.shur))
   }#else
   
 }#impact

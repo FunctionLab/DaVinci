@@ -622,7 +622,7 @@ GSEA <- function(gene.list, gene.all = NULL, dbs, pathway, number.of.top.pathway
 #' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 #' 
-Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num.args = c(4, 6, 8, 9, 10, 11, 12, 14, 16, 18, 20), ld.resolution.args = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5),  random.seed = 1){
+Cluster.Finetune.pre <- function(input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num.args = c(4, 6, 8, 9, 10, 11, 12, 14, 16, 18, 20), ld.resolution.args = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5),  random.seed = 1){
     
   par.list <- list()
   set.seed(random.seed)
@@ -685,6 +685,8 @@ Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, m
         
       }#if is.null
       
+      partition <- as.character(partition)
+      names(partition) <- rownames(input)
       par.list[[ii]] <- partition
       
     }#for ii
@@ -706,10 +708,22 @@ Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, m
           partition <- Seurat:::RunModularityClustering(input, resolution = args[ii], algorithm = 1, print.output = F)
         
       }#else if
+
+      partition <- as.character(partition)
+      names(partition) <- rownames(input)
       par.list[[ii]] <- partition
     }#for ii
     
   }#else if
+  
+  return(list(args = args, par.list = par.list))
+
+}#Cluster.Finetune.pre
+
+
+
+
+Cluster.Finetune <- function(args, par.list){
   
   #FM index calculated
   #########################################################
@@ -737,12 +751,15 @@ Cluster.Finetune <- function(input, method = "mclust", L2norm = T, zscore = F, m
     }#if 
   }#for ii
   args.opt <- args[index.opt]
-  
-  
-  return(list(args = args, fw.val = fw.val, fw.val.average = fw.val.average, par.list = par.list, args.opt = args.opt))
-  
-}#Cluster.Finetune
 
+  return(list(args = args, fw.val = fw.val, fw.val.average = fw.val.average, par.list = par.list, args.opt = args.opt))
+  #args - hyperparameters
+  #fw.val
+  #fw.val.average
+  #par.list - all partitions
+  #args.opt - optimal hyperparameters
+
+}#Cluster.Finetune
 
 
 

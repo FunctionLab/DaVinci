@@ -12,7 +12,9 @@ Horizontal.Integration(
   k.args = rep(12, length(Y.list)),
   LVs.filter.thr = 0.8,
   mod = "all",
-  remove.LV1 = T
+  remove.LV1 = F,
+  L2.option = "L2norm",
+  LV.filter = T
 )
 }
 \arguments{

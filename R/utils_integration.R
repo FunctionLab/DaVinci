@@ -138,6 +138,12 @@ BiModalIntegration <- function(modal.1, modal.2, mat.1=modal.1, mat.2=modal.2, n
   weight.2 <- exp(score.2)/score.sum
   
   
+
+  #reweigh the weight with the library size
+  #################################
+
+  #with thresholding
+
   
   message("Calculating the weighted KNN and SNN")
   ########################################################################################

@@ -9,7 +9,8 @@ scatter.DiscretePlot(
   cluster.label,
   pt.size = 2,
   ratio = NULL,
-  plot.all = F
+  plot.all = F,
+  to_highlight = NULL
 )
 }
 \description{
