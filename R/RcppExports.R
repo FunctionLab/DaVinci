@@ -6,14 +6,14 @@
 #' @param B 2nd matrix
 #' @export
 eigenMapMatMult <- function(A, B) {
-    .Call(`_DAVINCHI_eigenMapMatMult`, A, B)
+    .Call(`_DaVinci_eigenMapMatMult`, A, B)
 }
 
 #' Schur decomposition
 #' @param x input matrix
 #' @export
 rcpp_shur <- function(x) {
-    .Call(`_DAVINCHI_rcpp_shur`, x)
+    .Call(`_DaVinci_rcpp_shur`, x)
 }
 
 #' Solve the sylvester equation
@@ -23,6 +23,6 @@ rcpp_shur <- function(x) {
 #' @param total
 #' @export
 sylvester_pre <- function(left, Z2, T2, total) {
-    .Call(`_DAVINCHI_sylvester_pre`, left, Z2, T2, total)
+    .Call(`_DaVinci_sylvester_pre`, left, Z2, T2, total)
 }
 

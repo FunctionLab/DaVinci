@@ -14,7 +14,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // eigenMapMatMult
 SEXP eigenMapMatMult(const Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> B);
-RcppExport SEXP _DAVINCHI_eigenMapMatMult(SEXP ASEXP, SEXP BSEXP) {
+RcppExport SEXP _DaVinci_eigenMapMatMult(SEXP ASEXP, SEXP BSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -26,7 +26,7 @@ END_RCPP
 }
 // rcpp_shur
 Rcpp::List rcpp_shur(arma::mat x);
-RcppExport SEXP _DAVINCHI_rcpp_shur(SEXP xSEXP) {
+RcppExport SEXP _DaVinci_rcpp_shur(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -37,7 +37,7 @@ END_RCPP
 }
 // sylvester_pre
 arma::mat sylvester_pre(arma::mat left, arma::mat Z2, arma::mat T2, arma::mat total);
-RcppExport SEXP _DAVINCHI_sylvester_pre(SEXP leftSEXP, SEXP Z2SEXP, SEXP T2SEXP, SEXP totalSEXP) {
+RcppExport SEXP _DaVinci_sylvester_pre(SEXP leftSEXP, SEXP Z2SEXP, SEXP T2SEXP, SEXP totalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -51,13 +51,13 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_DAVINCHI_eigenMapMatMult", (DL_FUNC) &_DAVINCHI_eigenMapMatMult, 2},
-    {"_DAVINCHI_rcpp_shur", (DL_FUNC) &_DAVINCHI_rcpp_shur, 1},
-    {"_DAVINCHI_sylvester_pre", (DL_FUNC) &_DAVINCHI_sylvester_pre, 4},
+    {"_DaVinci_eigenMapMatMult", (DL_FUNC) &_DaVinci_eigenMapMatMult, 2},
+    {"_DaVinci_rcpp_shur", (DL_FUNC) &_DaVinci_rcpp_shur, 1},
+    {"_DaVinci_sylvester_pre", (DL_FUNC) &_DaVinci_sylvester_pre, 4},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_DAVINCHI(DllInfo *dll) {
+RcppExport void R_init_DaVinci(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

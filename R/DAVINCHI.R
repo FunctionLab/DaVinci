@@ -1,6 +1,6 @@
-#' DAVINCHI: Deconvolving lAtent Variables for Integrated Niche Cluster Identification
+#' DaVinci: Deconvolving lAtent Variables for Integrated Niche Cluster Identification
 #' 
-#' @useDynLib DAVINCHI, .registration=TRUE
+#' @useDynLib DaVinci, .registration=TRUE
 NULL
 
 

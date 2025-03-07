@@ -358,7 +358,7 @@ manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20
   #step 2: tile-level decomposition, get Z
   ##################################
   #tile.mat, coor.tile
-  fin.tile <- DAVINCHI::preprocess(tile.mat, coor.tile, type = "rna", graph.opt = "Tri.mesh",  frac.thr = 0.95)
+  fin.tile <- DaVinci::preprocess(tile.mat, coor.tile, type = "rna", graph.opt = "Tri.mesh",  frac.thr = 0.95)
   
   gene.exp.tile <- fin.tile$mat
   L.tile <- fin.tile$L
