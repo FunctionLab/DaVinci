@@ -522,8 +522,24 @@ silhouette_score <- function(input, k, random.seed = 1){
 
 
 
-md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, pos.B, thr = 0.8, early_flag = T){
+md.default <- function(Y, 
+                       B, 
+                       k, 
+                       max.iter, 
+                       L1, 
+                       L2, 
+                       L4, 
+                       right.shur, 
+                       adaptive.iter, 
+                       adaptive.frac, 
+                       trace =F, 
+                       tol, 
+                       pos, 
+                       pos.B, 
+                       thr = 0.8, 
+                       early_flag = T){
 
+  
   Bdiff=Inf
   BdiffTrace=double()
   BdiffCount=0
@@ -558,8 +574,9 @@ md.default <- function(Y, B, k, max.iter, L1, L2, L4, right.shur, adaptive.iter,
     total <- 2*t(Z) %*% Y
 
     B <- sylvester_pre(left, right.shur$U, right.shur$S, total)
-if (pos.B == "hard"){
-      B[B<0] <- 0  
+    
+    if (pos.B == "hard"){
+        B[B<0] <- 0  
     }else if (pos.B == "adaptive"){
       
       if(i>=adaptive.iter && adaptive.frac>0){
@@ -578,9 +595,10 @@ if (pos.B == "hard"){
     Bdiff=sum((B-oldB)^2)/sum(B^2)
     BdiffTrace=c(BdiffTrace, Bdiff)
     err0=sum((Y-Z%*%B)^2)+sum((Z)^2)*L1+sum(B^2)*L2
+    
     if(trace){
       message(paste0("iter",i, " errorY= ",erry<-round2(mean((Y-Z%*%B)^2)), ", Bdiff= ",round2(Bdiff), ", Bkappa=", round2(kappa(B))))
-    }
+    }#if
 
     #check for convergence
     if(i>52&&Bdiff>BdiffTrace[i-50]){
@@ -590,12 +608,17 @@ if (pos.B == "hard"){
     }#else if
 
     if(Bdiff<tol &&i>40){
-      message(paste0("converged at  iteration ", i))
+      if (trace){
+        message(paste0("converged at  iteration ", i))
+      }#if trace
       break
     }#if
 
     if( BdiffCount>5&&i>40){
-      message(paste0("stopped at  iteration ", i, " Bdiff is not decreasing"))
+      if (trace){
+        message(paste0("stopped at  iteration ", i, " Bdiff is not decreasing"))
+      }#if trace
+      
       break
     }#if
 
@@ -652,13 +675,37 @@ if (min(apply(B, 1, sd) ) < 1e-7){
 #'
 #' @return A list of results.
 #' @export
-manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NULL, shur0 = NULL, max.iter=200, tol=5e-6, trace=F,rseed=NULL, B=NULL, scale=1,  adaptive.frac=0.05, adaptive.iter=30, L4_adaptive =2, to_drop =T, pos = T, pos.B = F, cor.thr = 0.8, save.complete = F, verbose = T){
+manifoldDecomp_adaptive=function(Y, 
+                                 L, 
+                                 k, 
+                                 svdres=NULL, 
+                                 L1=NULL, 
+                                 L2=NULL, 
+                                 L4 = NULL, 
+                                 shur0 = NULL, 
+                                 max.iter=200, 
+                                 tol=5e-6, 
+                                 trace=F,
+                                 rseed=NULL, 
+                                 B=NULL, 
+                                 scale=1,  
+                                 adaptive.frac=0.05, 
+                                 adaptive.iter=30, 
+                                 L4_adaptive =2, 
+                                 to_drop =T, 
+                                 pos = T, 
+                                 pos.B = F, 
+                                 cor.thr = 0.8, 
+                                 save.complete = F, 
+                                 verbose = T){
 
   pos.adj=3
   ng=nrow(Y)
   ns=ncol(Y)
 
-  
+  #keep consistent
+  trace <- verbose
+    
   #standard deviation check
   feature.sd <- apply(Y, 1, sd)
   if (max(feature.sd) < 1e-2){
@@ -792,9 +839,23 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
   }#if verbose
 
 
-  md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, pos.B, thr = cor.thr)
+  md.run <- md.default(Y, 
+                       B0, 
+                       k, 
+                       max.iter, 
+                       L1, 
+                       L2, 
+                       L4, 
+                       right.shur, 
+                       adaptive.iter, 
+                       adaptive.frac, 
+                       trace = trace, 
+                       tol, 
+                       pos, 
+                       pos.B, 
+                       thr = cor.thr)
 
-
+ 
   if (md.run$flag == "Explode"){
 
     if (verbose){
@@ -835,10 +896,10 @@ manifoldDecomp_adaptive=function(Y, L, k, svdres=NULL, L1=NULL, L2=NULL, L4 = NU
 
     #if L4_left and L4_right is too close, then Done
     if (abs(L4_left-L4_right) < 0.1){
-      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, pos.B, thr = cor.thr, early_flag = F)
+      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace = trace, tol, pos, pos.B, thr = cor.thr, early_flag = F)
       md.run$flag <- "Done"
     }else{
-      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace, tol, pos, pos.B, thr = cor.thr, early_flag = T)
+      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace = trace, tol, pos, pos.B, thr = cor.thr, early_flag = T)
     }#else
 
 

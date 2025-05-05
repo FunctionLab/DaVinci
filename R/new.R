@@ -3,7 +3,13 @@
 #' When the number of clusters is set, run louvain/leiden clustering in an adaptive manner.
 #' 
 #' @export
-leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adaptive.size = 2, method = "louvain", verbose = T){
+leiden_adaptive <- function(nn, 
+                            num.of.cluster = 5, 
+                            resolution.start = 0.5, 
+                            adaptive.size = 2, 
+                            method = "louvain", 
+                            verbose = T, 
+                            full = F){
   
   #partition <- leiden::leiden(nn, resolution_parameter = resolution.start)
   if (method == "leiden"){
@@ -22,7 +28,14 @@ leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adap
     reso.right <- resolution.start
     reso <- reso.left
   }else{
-    return(partition)
+    reso <- resolution.start
+    
+    if (full){
+      return(list(partition = as.character(partition), reso = reso))
+    }else{
+      return(as.character(partition))
+    }#else
+    
   }#else
   
   
@@ -35,7 +48,7 @@ leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adap
       
       if (abs(reso.left-reso.right) < 1e-4){
         message("Re-initalize.") 
-        return( leiden_adaptive(nn, num.of.cluster, resolution.start = resolution.start+0.1, adaptive.size, method, verbose) )
+        return( leiden_adaptive(nn, num.of.cluster, resolution.start = resolution.start+0.1, adaptive.size, method, verbose, full) )
         
       }else{
       
@@ -84,7 +97,13 @@ leiden_adaptive <- function(nn, num.of.cluster = 5, resolution.start = 0.5, adap
           }#else if
           
         }else{
-          return(partition)
+          
+          if (full){
+              return(list(partition = as.character(partition), reso = reso))
+          }else{
+              return(as.character(partition))
+          }#else
+        
         }#else
         
         if (verbose){
@@ -140,7 +159,11 @@ self_extract <- function(proj, ids, opt.in = "Z"){
 #' Figure out the consensus of latent variables
 #' 
 #' @export
-self_deco <- function(proj,  LVs.filter.thr = 0.9, freq = 1, opt = "B"){
+self_deco <- function(proj,  
+                      LVs.filter.thr = 0.9, 
+                      freq = 1, 
+                      opt = "B",
+                      verbose = F){
   
   num.of.slice <- length(proj)
   
@@ -198,7 +221,9 @@ self_deco <- function(proj,  LVs.filter.thr = 0.9, freq = 1, opt = "B"){
       components_selected <- which(components_list$csize>freq)
       components_selected <- components_selected[order(components_list$csize[components_selected] , decreasing = T)]
       
-      print(sort(components_list$csize, decreasing = T))
+      if (verbose){
+        print(sort(components_list$csize, decreasing = T))
+      }#if verbose      
       
       #output the module size
       components.size <- components_list$csize[components_selected]
@@ -300,6 +325,128 @@ refinement.batch <- function(data, coor, neighbor.option="KNN", neighbor.arg = 6
 
 
 
+Proximity.Dependency <- function(mat, 
+                                 coor, 
+                                 niche, 
+                                 Query = list("0+3"=c("0","3")), 
+                                 Anchor = list("1+2"=c("1","2")), 
+                                 n_neighbors = 5,
+                                 meth = "p",
+                                 fn = mean){
+  
+  #create index for Anchor
+  ###################################
+  anchor.list <- list()
+  
+  for (ii in 1:length(Anchor)){
+    include.index <- which(niche %in% Anchor[[ii]])
+    
+    prebuild.index.modal <- BiocNeighbors::buildIndex( coor[names(niche)[include.index],], BNPARAM = BiocNeighbors::AnnoyParam() )  
+    anchor.list[[ii]] <- prebuild.index.modal
+  }#for ii
+  names(anchor.list) <- names(Anchor)
+  
+  
+  #query
+  ###################################
+  query.list <- list()
+  for (ii in 1:length(Query)){
+    
+    #print(ii)
+    to_query <- coor[ names(niche)[which(niche %in% Query[[ii]])], ]
+    
+    temp <- list()
+    for (jj in 1:length(Anchor)){
+      modal.neighbor <- FindNN(query=to_query, number.of.NN = n_neighbors, prebuild.index = anchor.list[[jj]])  
+      
+      buffer <- apply(modal.neighbor$distance,1, fn)
+      names(buffer) <- rownames(to_query)
+      
+      temp[[jj]] <- buffer
+    }#for jj
+    names(temp) <- names(Anchor)
+    
+    query.list[[ii]] <- temp
+  }#for ii
+  
+  names(query.list) <- names(Query)
+  
+  
+  #correlation test
+  ###################################
+  cor.list <- list()
+  
+  for (ii in 1:length(query.list)){
+    
+    cor.temp.list <- list()
+    
+    for (jj in 1:length(anchor.list)){
+      
+      dd <- query.list[[ii]][[jj]]
+      yy <- mat[,names(dd)]
+      
+      
+      calc <- apply(yy, 1, function(x){
+        cor.test(dd, x, method = meth)
+      })
+      
+      p.val <- sapply(calc, "[[", "p.value")
+      cor.val <- sapply(calc, "[[", "estimate")
+      q.val <- p.adjust(p.val, method = "BH")
+      calc.summary <- data.frame(gene = rownames(mat),
+                                 cor.val = cor.val,
+                                 p.val = p.val,
+                                 q.val = q.val
+                                 )
+      rownames(calc.summary) <- rownames(mat)
+      calc.summary <- calc.summary[order(calc.summary$q.val, decreasing = F),]
+      cor.temp.list[[jj]] <- calc.summary
+      
+    }#for jj
+    
+    names(cor.temp.list) <- names(anchor.list)
+    cor.list[[ii]] <- cor.temp.list
+    
+  }#for ii
+  
+  names(cor.list) <- names(query.list)
+  
+  return(list(Query.dist = query.list, cor.list = cor.list))
+  
+}#Proximity.Dependency
+
+
+
+
+Proximity.Dependency.scatter <- function(gene.name, 
+                                         mat,
+                                         dist,
+                                         x.lab = "Distance to all the other niches",
+                                         y.lab = "Expression levels"){
+  
+  dd <- dist
+  yy <- mat[gene.name, names(dd)]
+  
+  to_plot <- data.frame(x = dd, y = yy)
+  
+  pp <- ggplot(to_plot, aes(x=x,y=log2(y+1)))+
+    geom_point(size = 2)+
+    theme_pubr(base_size = 30)+
+    geom_smooth(method = "lm")+
+    stat_cor(size=8, label.x = 5, label.y = 0.2)+
+    xlab(x.lab)+
+    ylab(y.lab)+
+    ggtitle(gene.name)
+  
+  return(pp)
+  
+}#Proximity.Dependency.scatter
+
+
+
+
+
+
 
 
 #Other parameters
@@ -339,9 +486,10 @@ Horizontal.Integration.Assemble <- function(
   #########################################################
   exhaustive.list <- list()
 
-
+  ptm <- proc.time()
   for (ii in 1:length(Y.list)){
     
+    message(paste0("Working on Sample ", ii))
     proj <- list()
     s0 <- NULL  
     
@@ -351,9 +499,9 @@ Horizontal.Integration.Assemble <- function(
       message("Working on k=", k.arg)
       
       if (is.null(s0)){
-        ICAp.res <- manifoldDecomp_adaptive(fin$mat, fin$L, k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T)  
+        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, verbose = F)  
       }else{
-        ICAp.res <- manifoldDecomp_adaptive(fin$mat, fin$L, k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = s0)  
+        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = s0, verbose = F)  
       }#else
       
       #saveRDS(ICAp.res, file = paste0(output.folder, "/", save.label, "@", normalize.version, "@k=", k.arg,".RDS") )
@@ -368,6 +516,7 @@ Horizontal.Integration.Assemble <- function(
 
     exhaustive.list[[ii]] <- proj  
   }#for ii
+  print(proc.time()-ptm)
 
 
 
@@ -394,17 +543,19 @@ Horizontal.Integration.Assemble <- function(
       embed.list[[ii]] <- self_deco(exhaustive.list[[ii]], LVs.filter.thr = 0.9, freq = 1, opt = "B")
     }#for ii
     
+
     #run again to finetune
+    #############################
+    
     embed.list.finetune <- list()
     for (ii in 1:length(embed.list)){
       
-      embed.list.finetune[[ii]] <- manifoldDecomp_adaptive( Y.list[[ii]], L.list[[ii]], k = nrow(embed.list[[ii]]$LVs), B = embed.list[[ii]]$LVs, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = exhaustive.list[[ii]][[1]]$shur0 )
+      embed.list.finetune[[ii]] <- manifoldDecomp_adaptive( Y.list[[ii]], L.list[[ii]], k = nrow(embed.list[[ii]]$LVs), B = embed.list[[ii]]$LVs, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = exhaustive.list[[ii]][[1]]$shur0, verbose = F)
             
     }#for ii
 
 
     #Finetune after self-contrastive learning
-    #############################
     if (input.opt == "OnlyDeco"){
     dav.res.list <- list()
     

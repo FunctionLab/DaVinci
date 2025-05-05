@@ -57,6 +57,9 @@ reciprocal_default <- function(Y.list, Lap, ICAp.res.list, num.of.reference.slic
 }#reciprocal_default
 
 
+
+
+
 p.intersect <- function(x){
   
   res <- x[[1]]

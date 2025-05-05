@@ -9,7 +9,19 @@
 #' @import BiocNeighbors
 #' @details This function requires `Seurat`. Make sure it is installed
 #' @export
-BiModalIntegration <- function(modal.1, modal.2, mat.1=modal.1, mat.2=modal.2, n_neighbors = 20, n_neighbors_large = 200, sigma.idx = n_neighbors, snn.far.nn = T, L2norm = T, sd.scale = 1, cross.contant = 1e-4, prune.SNN = 0, kernel.power = 1){
+BiModalIntegration <- function(modal.1, 
+                              modal.2, 
+                              mat.1=modal.1, 
+                              mat.2=modal.2, 
+                              n_neighbors = 20, 
+                              n_neighbors_large = 200, 
+                              sigma.idx = n_neighbors, 
+                              snn.far.nn = T, 
+                              L2norm = "col", 
+                              sd.scale = 1, 
+                              cross.contant = 1e-4, 
+                              prune.SNN = 0, 
+                              kernel.power = 1){
   
   if (!requireNamespace("Seurat", quietly = TRUE)) {
     stop("Seurat is required for this function but is not installed. Please install it.")
@@ -28,8 +40,8 @@ BiModalIntegration <- function(modal.1, modal.2, mat.1=modal.1, mat.2=modal.2, n
 
   #L2 normalization
   #################################
-  if (L2norm){
-    if (F){
+  if (!is.null(L2norm)){
+    if (L2norm == "row"){
     
       message("Sample-wise L2Norm")
       modal.1 <- L2Norm(modal.1, MARGIN = 1)
@@ -37,7 +49,7 @@ BiModalIntegration <- function(modal.1, modal.2, mat.1=modal.1, mat.2=modal.2, n
       mat.1 <- L2Norm(mat.1, MARGIN = 1)
       mat.2 <- L2Norm(mat.2, MARGIN = 1)
       
-    }else{
+    }else if (L2norm == "column"){
       
       message("Column-wise L2Norm")
       modal.1 <- L2Norm(modal.1, MARGIN = 2)
