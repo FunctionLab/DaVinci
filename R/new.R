@@ -650,19 +650,6 @@ Horizontal.Integration.Assemble <- function(
 
 
 
-dataset.opts = NULL,
-    Y.list,
-    L.list, 
-    coor.list,
-    k.arg.list = c(4, 6, 8, 10, 11, 12, 13, 15, 16, 18, 20, 22, 24), #the parameters for self-contrastive learning step
-    L4.arg = 50, #parameters
-    input.opt = "FineTune", #OnlyDeco, FineTune
-    h.opt = "first",   #default, first
-    mod.opt = "all",   #all, common
-    L2.in = "default", #default, L2norm, L2norm.joint
-    random.seed = 1,
-    smooth = F
-
 
 
 
