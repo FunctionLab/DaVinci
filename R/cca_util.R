@@ -246,7 +246,17 @@ impact_adaptive <- function(reference.Z, query.gene.exp, query.L, query.L1 = NUL
 
 #use the fixed L4
 #' Used by reciprocal_default() and reciprocal_with_Z()
-impact <- function(reference.Z, query.gene.exp, query.L, query.L4, query.shur0 = NULL, query.ICAp.res = NULL, scale=1, max.iter = 200, cor.thr = 0.8, save.complete=F){
+impact <- function(reference.Z, 
+                    query.gene.exp, 
+                    query.L, 
+                    query.L4, 
+                    query.shur0 = NULL, 
+                    query.ICAp.res = NULL, 
+                    scale=1, 
+                    max.iter = 200, 
+                    cor.thr = 0.8, 
+                    save.complete=F,
+                    verbose = F){
   pos.adj <- 3
   
   k <- ncol(reference.Z)
@@ -256,13 +266,18 @@ impact <- function(reference.Z, query.gene.exp, query.L, query.L4, query.shur0 =
   reference.Z <- reference.Z[gene.intersect,]
   query.gene.exp <- query.gene.exp[gene.intersect,]
   
+  if (verbose){
+    message("************")
+  }#if verbose
   
-  message("************")
   
   #calculate the L1, L2 parameters
   ###########################################################
   if (is.null(query.ICAp.res)){
-    message("Computing SVD")
+    if (verbose){
+      message("Computing SVD")
+    }#if verbose
+    
     set.seed(123)
     svdres <- rsvd(query.gene.exp, k = k)
     svdres <- rotateSVD(svdres)
@@ -278,8 +293,11 @@ impact <- function(reference.Z, query.gene.exp, query.L, query.L4, query.shur0 =
     L2 <- query.ICAp.res$L2
   }#else
   
-  print(paste0("L1 is set to ", L1))
-  print(paste0("L2 is set to ", L2))
+  if (verbose){
+    print(paste0("L1 is set to ", L1))
+    print(paste0("L2 is set to ", L2))
+  }#if verbose
+  
   
   L4 <- query.L4
   #B
@@ -291,7 +309,10 @@ impact <- function(reference.Z, query.gene.exp, query.L, query.L4, query.shur0 =
   
   right.shur <- query.shur0
   right.shur$S <- 2*L4*right.shur$S
-  message("Shur done")
+
+  if (verbose){
+    message("Shur done")
+  }#if verbose
   
   md.run <- impact.default(reference.Z, query.gene.exp, k, L2, right.shur, thr = cor.thr)
   

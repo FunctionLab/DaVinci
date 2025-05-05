@@ -336,7 +336,7 @@ Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list
     dav.res.list <- list()
   
     for (ii in 1:length(Y.list)){
-      dav.res.list[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.args[ii], L4 = 50, L4_adaptive = 2, to_drop = T, save.complete = T)
+      dav.res.list[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.args[ii], L4 = 50, L4_adaptive = 2, to_drop = T, save.complete = T, verbose = F)
     }#for ii
     
   }#if
@@ -345,9 +345,9 @@ Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list
   ##########################################################
   message("Reciprocal projection starts.")
   
-  ptm <- proc.time()
+  #ptm <- proc.time()
   proj <- reciprocal_default(Y.list, L.list, dav.res.list)
-  print(proc.time()-ptm)
+  #print(proc.time()-ptm)
   message("Projection finishes.")
   
   LVs <- reciprocal_concat(proj, option = L2.option)
@@ -356,9 +356,9 @@ Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list
   #harmony
   ##########################################################
   message("Batch correction starts.")
-  ptm <- proc.time()
+  #ptm <- proc.time()
   LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
-  print(proc.time()-ptm)
+  #print(proc.time()-ptm)
   rownames(LVs_embeddings) <- colnames(LVs)
   message("Batch correction finishes.")
   
@@ -370,9 +370,9 @@ Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list
   ##########################################################
   message("Select the principal axis.")
   if (LV.filter){
-    ptm <- proc.time()
+    #ptm <- proc.time()
     LVs_embeddings <- reciprocal_deco(t(LVs_embeddings), LVs.filter.thr = LVs.filter.thr, mod = mod)
-    print(proc.time()-ptm)
+    #print(proc.time()-ptm)
     LVs_embeddings <- t(LVs_embeddings)
   }#if LV.filter
   message("Selection finishes.")
