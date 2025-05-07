@@ -47,7 +47,10 @@ leiden_adaptive <- function(nn,
       }#if
       
       if (abs(reso.left-reso.right) < 1e-4){
-        message("Re-initalize.") 
+        if (verbose){
+          message("Re-initalize.") 
+        }#if verbose
+        
         return( leiden_adaptive(nn, num.of.cluster, resolution.start = resolution.start+0.1, adaptive.size, method, verbose, full) )
         
       }else{
@@ -60,7 +63,10 @@ leiden_adaptive <- function(nn,
         }#else if
         
         if ( length(unique(partition)) < num.of.cluster){
-          message("Explode")
+          if (verbose){
+            message("Explode")
+          }#if verbose
+          
           if (reso == reso.left){
             reso.left <- reso.left
             reso <- (reso.left+reso.right)/2
@@ -77,7 +83,9 @@ leiden_adaptive <- function(nn,
           }#else if
           
         }else if ( length(unique(partition)) > num.of.cluster){
-          message("Shrink")
+          if (verbose){
+            message("Shrink")
+          }#if verbose          
           
           if (reso == reso.left){
             reso <- reso/adaptive.size
@@ -714,7 +722,8 @@ Niche.report <- function(
   num.cluster.args = NULL, 
   num.neighbors = 40,        #key parameters
   resolution.args = NULL, 
-  random.seed = 1
+  random.seed = 1,
+  verbose = F
   ){
   
   message("mclust, leiden and louvain have been preset.")
@@ -784,7 +793,7 @@ Niche.report <- function(
       par.list <- list()
       
       for (pp in 1:length(num.cluster.args)){
-        par.list[[pp]] <- leiden_adaptive(snn.res$snn, num.of.cluster = num.cluster.args[pp], resolution.start = 0.4, adaptive.size = 2, method = method)
+        par.list[[pp]] <- leiden_adaptive(snn.res$snn, num.of.cluster = num.cluster.args[pp], resolution.start = 0.4, adaptive.size = 2, method = method, verbose = verbose)
         names(par.list[[pp]]) <- rownames(mat)
       }#for pp
       

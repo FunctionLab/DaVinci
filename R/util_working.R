@@ -446,7 +446,7 @@ scatter.FeaturePlot <- function(
   if (is.numeric(LVs) & is.vector(LVs)){
     
     dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs)
-    p <- ggplot2::ggplot(dat.plot, aes(x=x,y = -y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
+    p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
     
     if (!is.null(ratio)){
         p <- p+ggplot2::theme(aspect.ratio = ratio)
@@ -497,12 +497,110 @@ scatter.FeaturePlot <- function(
   return(p)
 }#scatter.FeaturePlot
 
+
+
+
+
+scatter.FeaturePlot.list <- function(LVs,
+                                    coor.list,
+                                    mat.slice.id,
+                                    dataset.opts,
+                                    pt.size = 0.5,
+                                    ratio = NULL
+                                    ){
+          
+
+          if (is.numeric(LVs) & is.vector(LVs)){
+              LVs.names <- names(LVs)
+              LVs <- matrix(LVs, ncol = 1)
+              rownames(LVs) <- LVs.names
+          }#if
+
+          plot.list <- list()
+          count <- 0
+
+          for (jj in 1:ncol(LVs)){
+              
+              for (ii in 1:length(dataset.opts)){
+                    coor.visual <- coor.list[[ii]]
+                    #make sure aligned
+                    LL <- LVs[mat.slice.id==dataset.opts[ii], jj]
+                    LL <- LL[rownames(coor.visual)]
+
+                    count <- count+1
+                    
+                    if (is.null(ratio)){
+                      
+                      plot.list[[count]] <- scatter.FeaturePlot(coor.visual, LVs = LL, plot.all=F , pt.size = pt.size, ratio = NULL)+
+                                          ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
+                                          theme(plot.title = element_text(size = 20))
+            
+                    }else{
+                      plot.list[[count]] <- scatter.FeaturePlot(coor.visual, LVs = LL, plot.all=F , pt.size = pt.size, ratio = ratio[dataset.opts[ii]])+
+                                          ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
+                                          theme(plot.title = element_text(size = 20))
+                    }#else
+
+              }#for ii
+
+          }#for jj
+
+          ggarrange(plotlist = plot.list, ncol = length(dataset.opts), nrow = length(plot.list)/length(dataset.opts))
+
+}#scatter.FeaturePlot.list
+
+
+
+
+
+scatter.DiscretePlot.list <- function(cluster.label, 
+                                      coor.list,
+                                      mat.slice.id,
+                                      dataset.opts,
+                                      pt.size = 2,
+                                      ratio = NULL
+                                      ){
+
+#plot.all & to_highlight cannot be active
+        plot.list <- list()
+
+        for (ii in 1:length(dataset.opts)){
+
+            coor.visual <- coor.list[[ii]]
+            coor.visual[,1] <- coor.list[[ii]][,2]
+            coor.visual[,2] <- -coor.list[[ii]][,1]
+
+            #make sure aligned
+            pp <- cluster.label[mat.slice.id==dataset.opts[ii]]
+            partition <- pp[rownames(coor.visual)]
+
+            if (is.null(ratio)){
+                plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, partition, pt.size = pt.size, ratio = ratio)+
+                                   colorPalette(unique(cluster.label), fill = F)+
+                                   ggtitle(dataset.opts[ii])+
+                                   theme(plot.title = element_text(size = 10))
+            }else{
+                plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, partition, pt.size = pt.size, ratio = ratio[dataset.opts[ii]])+
+                                   colorPalette(unique(cluster.label), fill = F)+
+                                   ggtitle(dataset.opts[ii])+
+                                   theme(plot.title = element_text(size = 10))
+            }#else
+
+        }#for ii
+
+        ggarrange(plotlist = plot.list)
+}#scatter.DiscretePlot.list
+
+
+
+
+
+
+
 #FeaturePlot <- function(coor, val, pt.size=2){
   #dat.plot <- data.frame(x=coor[,1], y = coor[,2], val = val)
   #ggplot(dat.plot, aes(x=x,y=-y,color= val))+geom_point(size= pt.size)+theme_void()+ggthemes::scale_color_gradient2_tableau(palette = "Orange-Blue Diverging", trans = "reverse")
 #}#FeaturePlot
-
-
 
 
 
