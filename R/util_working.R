@@ -500,7 +500,9 @@ scatter.FeaturePlot <- function(
 
 
 
-
+#' Visualize continous variables only with coordinate information across multiple samples
+#' @import ggpubr
+#' @export
 scatter.FeaturePlot.list <- function(LVs,
                                     coor.list,
                                     mat.slice.id,
@@ -552,7 +554,9 @@ scatter.FeaturePlot.list <- function(LVs,
 
 
 
-
+#' Visualize discrete variables only with coordinate information across multiple samples
+#' @import ggpubr
+#' @export
 scatter.DiscretePlot.list <- function(cluster.label, 
                                       coor.list,
                                       mat.slice.id,

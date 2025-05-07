@@ -4,7 +4,7 @@
 \alias{self_deco}
 \title{Consensus Decomposition}
 \usage{
-self_deco(proj, LVs.filter.thr = 0.9, freq = 1, opt = "B")
+self_deco(proj, LVs.filter.thr = 0.9, freq = 1, opt = "B", verbose = F)
 }
 \description{
 Figure out the consensus of latent variables

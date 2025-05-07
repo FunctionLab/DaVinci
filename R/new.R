@@ -332,7 +332,11 @@ refinement.batch <- function(data, coor, neighbor.option="KNN", neighbor.arg = 6
 
 
 
-
+#' Proximity-dependent gene discovery
+#'
+#' Proximity-dependent gene discovery
+#' 
+#' @export
 Proximity.Dependency <- function(mat, 
                                  coor, 
                                  niche, 
@@ -426,6 +430,11 @@ Proximity.Dependency <- function(mat,
 
 
 
+#' Proximity-dependent gene visualization
+#'
+#' Proximity-dependent gene visualization
+#' 
+#' @export
 Proximity.Dependency.scatter <- function(gene.name, 
                                          mat,
                                          dist,
@@ -467,6 +476,11 @@ Proximity.Dependency.scatter <- function(gene.name,
 # - L2.opt <- "Yes" #Yes, No - whether L2norm before finding the nearest neighbors or mclust
 # - k.opt <- 40 #neighboring paramters for louvain
 
+#' Cross-sample (Horizontal) integration wrapper
+#'
+#' Cross-sample (Horizontal) integration
+#' 
+#' @export
 Horizontal.Integration.Assemble <- function(
     dataset.opts = NULL,
     Y.list,
@@ -494,10 +508,10 @@ Horizontal.Integration.Assemble <- function(
   #########################################################
   exhaustive.list <- list()
 
-  ptm <- proc.time()
+  #ptm <- proc.time()
   for (ii in 1:length(Y.list)){
     
-    message(paste0("Working on Sample ", ii))
+    message(paste0("Working on Sample ", ii, " / ", length(Y.list)))
     proj <- list()
     s0 <- NULL  
     
@@ -524,7 +538,7 @@ Horizontal.Integration.Assemble <- function(
 
     exhaustive.list[[ii]] <- proj  
   }#for ii
-  print(proc.time()-ptm)
+  #print(proc.time()-ptm)
 
 
 
@@ -713,6 +727,12 @@ Vertical.Integration.Assemble <- function(
 #(1:15)/10
 #L2.opt <- "Yes" #Yes, No - whether L2norm before finding the nearest neighbors or mclust
 #k.opt <- 40 #neighboring paramters for louvain
+
+#' Niche report
+#'
+#' Cluster the latent variables to get the niche labels
+#' 
+#' @export
 Niche.report <- function(
   mat, 
   method = "louvain", 
@@ -814,7 +834,11 @@ Niche.report <- function(
 
 
 
-
+#' Niche finetune
+#'
+#' Apply local smoothing on the output of Niche.report().
+#' 
+#' @export
 Niche.report.finetune <- function(par.list, dataset.opts, coor.list, mat.slice.id, neighbor.arg = 8){
   
   #refine every partition

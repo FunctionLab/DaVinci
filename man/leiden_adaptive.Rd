@@ -10,7 +10,8 @@ leiden_adaptive(
   resolution.start = 0.5,
   adaptive.size = 2,
   method = "louvain",
-  verbose = T
+  verbose = T,
+  full = F
 )
 }
 \description{

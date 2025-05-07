@@ -14,7 +14,8 @@ impact(
   scale = 1,
   max.iter = 200,
   cor.thr = 0.8,
-  save.complete = F
+  save.complete = F,
+  verbose = F
 )
 }
 \description{
