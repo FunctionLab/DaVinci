@@ -693,8 +693,8 @@ Vertical.Integration.Assemble <- function(
     L2.in = "default", #default, L2norm, L2norm.joint
     random.seed = 1,
     smooth = F,
-    n_neighbor = 40,    #vertical integration parameters - optimized
-    n_neighbor_large = 50,  #vertical integration parameters - optimized
+    n_neighbors = 40,    #vertical integration parameters - optimized
+    n_neighbors_large = 50,  #vertical integration parameters - optimized
     L2_norm = T,  #vertical integration parameters - optimized
     library.size.1 = NULL,
     library.size.2 = NULL,
