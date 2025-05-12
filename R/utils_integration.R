@@ -216,6 +216,7 @@ BiModalIntegration <- function(
                 baseline.1 <- baseline.atac
           }#else if
 
+          message("Reference UMI of modality 1 is set to be: ", baseline.1)
       }#if is.null
       
       if (is.null(baseline.2)){
@@ -224,6 +225,8 @@ BiModalIntegration <- function(
               }else if (library.type.2 == "atac"){
                       baseline.2 <- baseline.atac
               }#else if 
+
+              message("Reference UMI of modality 2 is set to be: ", baseline.2)
       }#if is.null
 
       
@@ -248,8 +251,12 @@ BiModalIntegration <- function(
       weight.1 <- weight.1/deno
       weight.2 <- weight.2/deno
 
-  }#if
-  
+  }else{
+    
+      message("No adjustment with reference UMI.")
+
+  }#else
+
 
 #apply the prior re-weighting - numerical stability
 #weight.1 <- weight.1*prior.1

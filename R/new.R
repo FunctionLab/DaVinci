@@ -674,17 +674,36 @@ Horizontal.Integration.Assemble <- function(
 
 
 
-
-
-#after horizontal step, no clustering (as resolution is not determined)
-#not test yet - 3/5/2025
+#' Cross-modality (Vertical) integration wrapper
+#'
+#' Cross-modality (Vertical) integration
+#' 
+#' @export
 Vertical.Integration.Assemble <- function(
-    input1,
-    input2,
-    n_n = 40,    #vertical integration parameters - optimized
-    n_n_l = 50,  #vertical integration parameters - optimized
-    L2_norm = T  #vertical integration parameters - optimized
-    ){
+    dataset.opts,
+    Y1.list,
+    Y2.list,
+    L.list, 
+    coor.list,
+    k.arg.list = c(4, 6, 8, 10, 11, 12, 13, 15, 16, 18, 20, 22, 24), #the parameters for self-contrastive learning step
+    L4.arg = 50, #parameters
+    input.opt = "FineTune", #OnlyDeco, FineTune
+    h.opt = "first",   #default, first
+    mod.opt = "all",   #all, common
+    L2.in = "default", #default, L2norm, L2norm.joint
+    random.seed = 1,
+    smooth = F,
+    n_neighbor = 40,    #vertical integration parameters - optimized
+    n_neighbor_large = 50,  #vertical integration parameters - optimized
+    L2_norm = T,  #vertical integration parameters - optimized
+    library.size.1 = NULL,
+    library.size.2 = NULL,
+    library.type.1 = "rna", 
+    library.type.2 = "atac",
+    baseline.1 = NULL,
+    baseline.2 = NULL,
+    verbose = F
+   ){
     
   
   #sanity check
@@ -693,21 +712,98 @@ Vertical.Integration.Assemble <- function(
     stop("Please include a vector of character names corresponding to the subfolders.")
   }#if
   
-  if (!all(rownames(input1)==rownames(input2))){
-    stop("input1 is not aligned with input2.")
-  }#if
   
   
-  #suppose the variables are ready
+  #first run through Horizontal.Integration.Assembele
   #########################################################
-  #don't consider smooth version -> vertical integration at this point
-  
-  integration.res <- BiModalIntegration(modal.1 = input1, modal.2 = input2, n_neighbors = n_n, n_neighbors_large = n_n_l, L2norm = L2_norm)
+  #Modality 1
+  message("Working on Modality 1")
+  ptm <- proc.time()
+  HI.1.res <- Horizontal.Integration.Assemble(
+                dataset.opts = dataset.opts,
+                Y.list  = Y1.list,
+                L.list  = L.list,
+                coor.list = coor.list,
+                k.arg.list = k.arg.list,
+                L4.arg = L4.arg,
+                input.opt = input.opt,
+                h.opt = h.opt,
+                mod.opt = mod.opt,
+                L2.in = L2.in,
+                random.seed = random.seed,
+                smooth = smooth
+  )
+  if (verbose){
+      print(proc.time()-ptm)
+      #4455s
+  }#if
+    
+  #Modality 2
+  message("Working on Modality 2")
+  ptm <- proc.time()
+  HI.2.res <- Horizontal.Integration.Assemble(
+                dataset.opts = dataset.opts,
+                Y.list  = Y2.list,
+                L.list  = L.list,
+                coor.list = coor.list,
+                k.arg.list = k.arg.list,
+                L4.arg = L4.arg,
+                input.opt = input.opt,
+                h.opt = h.opt,
+                mod.opt = mod.opt,
+                L2.in = L2.in,
+                random.seed = random.seed,
+                smooth = smooth
+  )
+  if (verbose){
+      print(proc.time()-ptm)
+      #5427s
+  }#if verbose
+
+  #vertical integration
+  #########################################################
+  #make sure names aligned
+  ##########################
+  input1 <- HI.1.res$mat
+  input2 <- HI.2.res$mat
+
+  message("Make sure names aligned.")
+  #all(paste0(HI.2.res$mat.slice.id, "@", rownames(input1)) == paste0(HI.1.res$mat.slice.id, "@", rownames(input2)))
+    
+  if (!is.null(library.size.1)){
+      if (all(paste0(HI.2.res$mat.slice.id, "@", rownames(input1)) == names(library.size.1))){
+          message("Modality 1 aligned.")
+      }#if
+  }#if
+
+  if (!is.null(library.size.2)){
+      if (all(paste0(HI.1.res$mat.slice.id, "@", rownames(input2)) == names(library.size.2))){
+          message("Modality 2 aligned.")
+      }#if
+  }#if
+
+  mat.slice.id <- HI.1.res$mat.slice.id
+
+  #start the vertical integation
+  ##########################
+  integration.res <- BiModalIntegration(
+                            modal.1 = input1, 
+                            modal.2 = input2, 
+                            n_neighbors = n_neighbors, 
+                            n_neighbors_large = n_neighbors_large, 
+                            L2norm = L2_norm,
+                            library.size.1 = library.size.1,
+                            library.size.2 = library.size.2,
+                            library.type.1 = library.type.1,
+                            library.type.2 = library.type.2,
+                            baseline.1 = baseline.1,
+                            baseline.2 = baseline.2
+                            )
   
   mat <- integration.res$snn.mat
   
-  return(mat)
-  
+  return(list(mat = mat, mat.slice.id = mat.slice.id, HI.1.res = HI.1.res, HI.2.res = HI.2.res, integration.res = integration.res))
+    
 }#Vertical.Integration.Assemble
 
 #sids <- rownames(input1)
