@@ -30,10 +30,15 @@ leiden_adaptive <- function(nn,
   }else{
     reso <- resolution.start
     
+    pp <- as.character(partition)
+    if (!is.null(rownames(nn))){
+        names(pp) <- rownames(nn)
+    }#if
+
     if (full){
-      return(list(partition = as.character(partition), reso = reso))
+      return(list(partition = pp, reso = reso))
     }else{
-      return(as.character(partition))
+      return(pp)
     }#else
     
   }#else
@@ -106,10 +111,15 @@ leiden_adaptive <- function(nn,
           
         }else{
           
+          pp <- as.character(partition)
+          if (!is.null(rownames(nn))){
+              names(pp) <- rownames(nn)
+          }#if
+          
           if (full){
-              return(list(partition = as.character(partition), reso = reso))
+              return(list(partition = pp, reso = reso))
           }else{
-              return(as.character(partition))
+              return(pp)
           }#else
         
         }#else
@@ -620,6 +630,7 @@ Horizontal.Integration.Assemble <- function(
     }else if (h.opt == "first"){
           
       integration.res <- Horizontal.Integration.first(Y.list, L.list, coor.list, dav.res.list = dav.res.list, LVs.filter.thr = 0.8, mod = mod.opt, remove.LV1 = F, L2.option = L2.in)
+      
     }#else
     
     
@@ -802,6 +813,10 @@ Vertical.Integration.Assemble <- function(
   
   mat <- integration.res$snn.mat
   
+  #assign names
+  rownames(mat) <- names(integration.res$weight.1)
+  colnames(mat) <- names(integration.res$weight.1)
+
   return(list(mat = mat, mat.slice.id = mat.slice.id, HI.1.res = HI.1.res, HI.2.res = HI.2.res, integration.res = integration.res))
     
 }#Vertical.Integration.Assemble

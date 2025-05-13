@@ -508,7 +508,9 @@ scatter.FeaturePlot.list <- function(LVs,
                                     mat.slice.id,
                                     dataset.opts,
                                     pt.size = 0.5,
-                                    ratio = NULL
+                                    ratio = NULL,
+                                    return.obj = F,
+                                    single.obj = F
                                     ){
           
 
@@ -547,7 +549,30 @@ scatter.FeaturePlot.list <- function(LVs,
 
           }#for jj
 
-          ggarrange(plotlist = plot.list, ncol = length(dataset.opts), nrow = length(plot.list)/length(dataset.opts))
+          if (return.obj){
+
+              if (single.obj){
+                  return(plot.list)
+              }else{
+                  #segregated by LV
+                  pp.list <- list()
+                  for (jj in 1:ncol(LVs)){
+
+                        start.index <- (jj-1)*length(dataset.opts)+1
+                        end.index <- jj*length(dataset.opts)
+                        tmp <- plot.list[start.index:end.index]                       
+                        names(tmp) <- dataset.opts
+                        pp.list[[jj]] <- tmp
+                  }#for jj
+                  names(pp.list) <- colnames(LVs)
+                  return(pp.list)
+              }#else
+
+          }else{
+            #single.obj will not affect in this case
+            ggarrange(plotlist = plot.list, ncol = length(dataset.opts), nrow = length(plot.list)/length(dataset.opts))
+          }#else
+          
 
 }#scatter.FeaturePlot.list
 

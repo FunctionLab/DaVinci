@@ -10,7 +10,9 @@ scatter.FeaturePlot.list(
   mat.slice.id,
   dataset.opts,
   pt.size = 0.5,
-  ratio = NULL
+  ratio = NULL,
+  return.obj = F,
+  single.obj = F
 )
 }
 \description{

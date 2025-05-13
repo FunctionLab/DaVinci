@@ -259,7 +259,16 @@ reciprocal_deco <- function(LVs, LVs.filter.thr = 0.9, mod = "all"){
 #' 
 #' @import harmony
 #' @export
-Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NULL, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = F, L2.option = "L2norm", LV.filter = T){
+Horizontal.Integration <- function(Y.list, 
+                                   L.list, 
+                                   coor.list, 
+                                   dav.res.list = NULL, 
+                                   k.args = rep(12, length(Y.list)), 
+                                   LVs.filter.thr = 0.8, 
+                                   mod = "all", 
+                                   remove.LV1 = F, 
+                                   L2.option = "L2norm", 
+                                   LV.filter = T){
   
   if ((length(Y.list) > 30) & (mod == "all")){
     message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
@@ -313,8 +322,27 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NUL
 
   slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
   
+  #extract the loadings corrresponding to LVs_embeddings
+   ######################################################
+   loading.uid <- colnames(LVs_embeddings)
+   loading.ii <- as.numeric(unlist(lapply(strsplit(colnames(integration.res$LVs_embeddings), "_"), function(x){x[1]})))
+   loading.jj <- unlist(lapply(strsplit(colnames(integration.res$LVs_embeddings), "_"), function(x){x[2]}))
+
+   #extract from dav.res.list
+   ##################################
+   loading <- list()
+   for (ii in 1:length(loading.uid)){
+      loading[[ii]] <- dav.res.list[[loading.ii[ii]]]$Z[,loading.jj[ii]]
+
+   }#for ii
+
+   names(loading) <- loading.uid 
+
+  return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id, loading = loading))
   
-  return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id))
+  #LVs - the intermediate resutls after reciprocal_concat
+  #LVs_embeddings - the product
+  #slice_id - sample id per slice
   
 }#Horizontal.Integration
 
@@ -324,7 +352,16 @@ Horizontal.Integration <- function(Y.list, L.list, coor.list, dav.res.list = NUL
 
 # harmony first, then filter LVs based on the correlation
 # instead of filtering LVs first and then running harmony
-Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list = NULL, k.args = rep(12, length(Y.list)), LVs.filter.thr = 0.8, mod = "all", remove.LV1 = F, L2.option = "L2norm", LV.filter = T){
+Horizontal.Integration.first <- function(Y.list, 
+                                         L.list, 
+                                         coor.list, 
+                                         dav.res.list = NULL, 
+                                         k.args = rep(12, length(Y.list)), 
+                                         LVs.filter.thr = 0.8, 
+                                         mod = "all", 
+                                         remove.LV1 = F, 
+                                         L2.option = "L2norm", 
+                                         LV.filter = T){
   
   if ((length(Y.list) > 30) & (mod == "all")){
     message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
@@ -387,8 +424,27 @@ Horizontal.Integration.first <- function(Y.list, L.list, coor.list, dav.res.list
       LVs_embeddings <- LVs_embeddings[,which(!colnames(LVs_embeddings) %in% remove.LV1)]
   }#if   
    
+   #extract the loadings corrresponding to LVs_embeddings
+   ######################################################
+   loading.uid <- colnames(LVs_embeddings)
+   loading.ii <- as.numeric(unlist(lapply(strsplit(colnames(integration.res$LVs_embeddings), "_"), function(x){x[1]})))
+   loading.jj <- unlist(lapply(strsplit(colnames(integration.res$LVs_embeddings), "_"), function(x){x[2]}))
 
-  return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id))
+   #extract from dav.res.list
+   ##################################
+   loading <- list()
+   for (ii in 1:length(loading.uid)){
+      loading[[ii]] <- dav.res.list[[loading.ii[ii]]]$Z[,loading.jj[ii]]
+
+   }#for ii
+
+   names(loading) <- loading.uid 
+
+  return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id, loading = loading))
+  
+  #LVs - the intermediate resutls after reciprocal_concat
+  #LVs_embeddings - the product
+  #slice_id - sample id per slice
   
 }#Horizontal.Integration.first
 
