@@ -325,8 +325,8 @@ Horizontal.Integration <- function(Y.list,
   #extract the loadings corrresponding to LVs_embeddings
    ######################################################
    loading.uid <- colnames(LVs_embeddings)
-   loading.ii <- as.numeric(unlist(lapply(strsplit(colnames(integration.res$LVs_embeddings), "_"), function(x){x[1]})))
-   loading.jj <- unlist(lapply(strsplit(colnames(integration.res$LVs_embeddings), "_"), function(x){x[2]}))
+   loading.ii <- as.numeric(unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[1]})))
+   loading.jj <- unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[2]}))
 
    #extract from dav.res.list
    ##################################
@@ -427,8 +427,8 @@ Horizontal.Integration.first <- function(Y.list,
    #extract the loadings corrresponding to LVs_embeddings
    ######################################################
    loading.uid <- colnames(LVs_embeddings)
-   loading.ii <- as.numeric(unlist(lapply(strsplit(colnames(integration.res$LVs_embeddings), "_"), function(x){x[1]})))
-   loading.jj <- unlist(lapply(strsplit(colnames(integration.res$LVs_embeddings), "_"), function(x){x[2]}))
+   loading.ii <- as.numeric(unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[1]})))
+   loading.jj <- unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[2]}))
 
    #extract from dav.res.list
    ##################################
