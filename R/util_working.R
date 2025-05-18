@@ -508,6 +508,8 @@ scatter.FeaturePlot.list <- function(LVs,
                                     mat.slice.id,
                                     dataset.opts,
                                     pt.size = 0.5,
+                                    title.size = 20,
+                                    orientation = "xy",
                                     ratio = NULL,
                                     return.obj = F,
                                     single.obj = F
@@ -527,6 +529,33 @@ scatter.FeaturePlot.list <- function(LVs,
               
               for (ii in 1:length(dataset.opts)){
                     coor.visual <- coor.list[[ii]]
+        
+            if (orientation == "xy"){
+                coor.visual[,1] <- coor.list[[ii]][,1]
+                coor.visual[,2] <- coor.list[[ii]][,2]
+            }else if (orientation == "-xy"){  
+                coor.visual[,1] <- -coor.list[[ii]][,1]
+                coor.visual[,2] <- coor.list[[ii]][,2]
+            }else if (orientation == "x-y"){
+                coor.visual[,1] <- coor.list[[ii]][,1]
+                coor.visual[,2] <- -coor.list[[ii]][,2]
+            }else if (orientation == "-x-y"){
+                coor.visual[,1] <- -coor.list[[ii]][,1]
+                coor.visual[,2] <- -coor.list[[ii]][,2]
+            }else if (orientation == "yx"){
+                coor.visual[,1] <- coor.list[[ii]][,2]
+                coor.visual[,2] <- coor.list[[ii]][,1]
+            }else if (orientation == "-yx"){
+                coor.visual[,1] <- -coor.list[[ii]][,2]
+                coor.visual[,2] <- coor.list[[ii]][,1]
+            }else if (orientation == "y-x"){
+                coor.visual[,1] <- coor.list[[ii]][,2]
+                coor.visual[,2] <- -coor.list[[ii]][,1]
+            }else if (orientation == "-y-x"){
+                coor.visual[,1] <- -coor.list[[ii]][,2]
+                coor.visual[,2] <- -coor.list[[ii]][,1]
+            }#else if 
+
                     #make sure aligned
                     LL <- LVs[mat.slice.id==dataset.opts[ii], jj]
                     LL <- LL[rownames(coor.visual)]
@@ -537,12 +566,12 @@ scatter.FeaturePlot.list <- function(LVs,
                       
                       plot.list[[count]] <- scatter.FeaturePlot(coor.visual, LVs = LL, plot.all=F , pt.size = pt.size, ratio = NULL)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
-                                          theme(plot.title = element_text(size = 20))
+                                          theme(plot.title = element_text(size = title.size))
             
                     }else{
                       plot.list[[count]] <- scatter.FeaturePlot(coor.visual, LVs = LL, plot.all=F , pt.size = pt.size, ratio = ratio[dataset.opts[ii]])+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
-                                          theme(plot.title = element_text(size = 20))
+                                          theme(plot.title = element_text(size = title.size))
                     }#else
 
               }#for ii
@@ -586,7 +615,9 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                       coor.list,
                                       mat.slice.id,
                                       dataset.opts,
-                                      pt.size = 2,
+                                      pt.size = 1,
+                                      title.size = 10,
+                                      orientation = "xy",
                                       ratio = NULL
                                       ){
 
@@ -596,9 +627,34 @@ scatter.DiscretePlot.list <- function(cluster.label,
         for (ii in 1:length(dataset.opts)){
 
             coor.visual <- coor.list[[ii]]
-            coor.visual[,1] <- coor.list[[ii]][,2]
-            coor.visual[,2] <- -coor.list[[ii]][,1]
 
+            if (orientation == "xy"){
+                coor.visual[,1] <- coor.list[[ii]][,1]
+                coor.visual[,2] <- coor.list[[ii]][,2]
+            }else if (orientation == "-xy"){  
+                coor.visual[,1] <- -coor.list[[ii]][,1]
+                coor.visual[,2] <- coor.list[[ii]][,2]
+            }else if (orientation == "x-y"){
+                coor.visual[,1] <- coor.list[[ii]][,1]
+                coor.visual[,2] <- -coor.list[[ii]][,2]
+            }else if (orientation == "-x-y"){
+                coor.visual[,1] <- -coor.list[[ii]][,1]
+                coor.visual[,2] <- -coor.list[[ii]][,2]
+            }else if (orientation == "yx"){
+                coor.visual[,1] <- coor.list[[ii]][,2]
+                coor.visual[,2] <- coor.list[[ii]][,1]
+            }else if (orientation == "-yx"){
+                coor.visual[,1] <- -coor.list[[ii]][,2]
+                coor.visual[,2] <- coor.list[[ii]][,1]
+            }else if (orientation == "y-x"){
+                coor.visual[,1] <- coor.list[[ii]][,2]
+                coor.visual[,2] <- -coor.list[[ii]][,1]
+            }else if (orientation == "-y-x"){
+                coor.visual[,1] <- -coor.list[[ii]][,2]
+                coor.visual[,2] <- -coor.list[[ii]][,1]
+            }#else if 
+
+            
             #make sure aligned
             pp <- cluster.label[mat.slice.id==dataset.opts[ii]]
             partition <- pp[rownames(coor.visual)]
@@ -607,12 +663,12 @@ scatter.DiscretePlot.list <- function(cluster.label,
                 plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, partition, pt.size = pt.size, ratio = ratio)+
                                    colorPalette(unique(cluster.label), fill = F)+
                                    ggtitle(dataset.opts[ii])+
-                                   theme(plot.title = element_text(size = 10))
+                                   theme(plot.title = element_text(size = title.size))
             }else{
                 plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, partition, pt.size = pt.size, ratio = ratio[dataset.opts[ii]])+
                                    colorPalette(unique(cluster.label), fill = F)+
                                    ggtitle(dataset.opts[ii])+
-                                   theme(plot.title = element_text(size = 10))
+                                   theme(plot.title = element_text(size = title.size))
             }#else
 
         }#for ii

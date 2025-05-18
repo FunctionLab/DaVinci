@@ -9,7 +9,9 @@ scatter.DiscretePlot.list(
   coor.list,
   mat.slice.id,
   dataset.opts,
-  pt.size = 2,
+  pt.size = 1,
+  title.size = 10,
+  orientation = "xy",
   ratio = NULL
 )
 }

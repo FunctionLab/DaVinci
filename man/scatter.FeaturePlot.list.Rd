@@ -10,6 +10,8 @@ scatter.FeaturePlot.list(
   mat.slice.id,
   dataset.opts,
   pt.size = 0.5,
+  title.size = 20,
+  orientation = "xy",
   ratio = NULL,
   return.obj = F,
   single.obj = F
