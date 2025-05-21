@@ -15,11 +15,13 @@ manifoldDecomp(
   max.iter = 200,
   tol = 5e-06,
   trace = F,
-  rseed = NULL,
   B = NULL,
+  B.random = F,
   scale = 1,
   adaptive.frac = 0.05,
-  adaptive.iter = 30
+  adaptive.iter = 30,
+  verbose = T,
+  random.seed = 123
 )
 }
 \description{

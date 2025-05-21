@@ -33,7 +33,22 @@ impact.default <- function(reference.Z, query.gene.exp, k, L2, right.shur, thr =
 #update L4
 #' For scalable implementation
 #' @export
-impact_adaptive <- function(reference.Z, query.gene.exp, query.L, query.L1 = NULL, query.L2 = NULL, query.L4, query.shur0 = NULL, query.ICAp.res = NULL, to_drop = T, scale=1, L4_adaptive =2, max.iter = 200, cor.thr = 0.8, save.complete=T, verbose = T){
+impact_adaptive <- function(reference.Z, 
+                            query.gene.exp, 
+                            query.L, 
+                            query.L1 = NULL, 
+                            query.L2 = NULL, 
+                            query.L4, 
+                            query.shur0 = NULL, 
+                            query.ICAp.res = NULL, 
+                            to_drop = T, 
+                            scale=1, 
+                            L4_adaptive = 2, 
+                            max.iter = 200, 
+                            cor.thr = 0.8, 
+                            save.complete=T, 
+                            verbose = T,
+                            random.seed = 123){
   pos.adj <- 3
   
   k <- ncol(reference.Z)
@@ -63,7 +78,7 @@ impact_adaptive <- function(reference.Z, query.gene.exp, query.L, query.L1 = NUL
         message("Computing SVD")  
       }#if verbose
       
-      set.seed(123)
+      set.seed(random.seed)
       svdres <- rsvd(query.gene.exp, k = k)
       svdres <- rotateSVD(svdres)
       
@@ -256,7 +271,8 @@ impact <- function(reference.Z,
                     max.iter = 200, 
                     cor.thr = 0.8, 
                     save.complete=F,
-                    verbose = F){
+                    verbose = F,
+                    random.seed = 123){
   pos.adj <- 3
   
   k <- ncol(reference.Z)
@@ -278,7 +294,7 @@ impact <- function(reference.Z,
       message("Computing SVD")
     }#if verbose
     
-    set.seed(123)
+    set.seed(random.seed)
     svdres <- rsvd(query.gene.exp, k = k)
     svdres <- rotateSVD(svdres)
     

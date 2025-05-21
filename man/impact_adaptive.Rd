@@ -19,7 +19,8 @@ impact_adaptive(
   max.iter = 200,
   cor.thr = 0.8,
   save.complete = T,
-  verbose = T
+  verbose = T,
+  random.seed = 123
 )
 }
 \description{

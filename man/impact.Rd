@@ -15,7 +15,8 @@ impact(
   max.iter = 200,
   cor.thr = 0.8,
   save.complete = F,
-  verbose = F
+  verbose = F,
+  random.seed = 123
 )
 }
 \description{

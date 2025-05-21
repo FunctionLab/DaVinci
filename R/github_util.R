@@ -321,7 +321,23 @@ L_generate <- function(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL)
 
 #' Main function with a fixed L4 parameter
 #' @export
-manifoldDecomp=function(Y, L, k,svdres=NULL, L1=NULL, L2=NULL, L4 = NULL,max.iter=200, tol=5e-6, trace=F,rseed=NULL, B=NULL, scale=1,  adaptive.frac=0.05, adaptive.iter=30){
+manifoldDecomp=function(Y, 
+                        L, 
+                        k,
+                        svdres=NULL, 
+                        L1=NULL, 
+                        L2=NULL, 
+                        L4 = NULL,
+                        max.iter=200, 
+                        tol=5e-6, 
+                        trace=F,
+                        B=NULL, 
+                        B.random = F,
+                        scale=1,  
+                        adaptive.frac=0.05, 
+                        adaptive.iter=30,
+                        verbose = T,
+                        random.seed = 123){
 
   round2=function(x){signif(x,4)}
   getT=function(x){-quantile(x[x<0], adaptive.frac)}
@@ -341,7 +357,7 @@ manifoldDecomp=function(Y, L, k,svdres=NULL, L1=NULL, L2=NULL, L4 = NULL,max.ite
   if(is.null(svdres)){
 
     message("Computing SVD")
-    set.seed(123)
+    set.seed(random.seed)
     svdres=rsvd(Y, k = k)
 
     svdres=rotateSVD(svdres)
@@ -375,18 +391,29 @@ manifoldDecomp=function(Y, L, k,svdres=NULL, L1=NULL, L2=NULL, L4 = NULL,max.ite
   #######################################################
   if(is.null(B)){
     #initialize B with svd
-    message("Init")
+    if (verbose){
+      message("Init")
+    }#if
+    
     B=t(svdres$v[1:ncol(Y), 1:k]%*%diag(sqrt(svdres$d[1:k])))
   }else{
-    message("B given")
+    
+    if (verbose){
+      message("B given")
+    }#if verbose
+    
   }#B initialization
 
 
-  if (!is.null(rseed)) {
-    message("using random start")
-    set.seed(rseed)
+  if (B.random) {
+    
+    if (verbose){
+      message("using random start")
+    }#if    
+    
+    set.seed(random.seed)
     B = t(apply(B, 1, sample))
-  }#is.null rseed
+  }#is.null
 
 
   right <- L4*t(L)+L4*L

@@ -12,7 +12,15 @@ require(emojifont) #recommended but not required
 #' Automatically tune the number of latent variables
 #' @importFrom rsvd rsvd
 #' @export
-AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.arg.list=exp(seq(log(100), log(10), length.out = length(k.arg.list))), frac.impute=0.1, frac.seed = 1, pos.B =F ){
+AutoTune <- function(gene.exp, 
+                     L, 
+                     k.arg.list = c(5, 10, 12, 15, 18, 20, 25), 
+                     L4.arg.list=exp(seq(log(100), log(10), 
+                     length.out = length(k.arg.list))), 
+                     frac.impute=0.1, 
+                     frac.seed = 1, 
+                     pos.B =F ){
+
   #create the dataset
   nonzero.index <- which(gene.exp!=0)
   set.seed(frac.seed)
@@ -27,7 +35,7 @@ AutoTune <- function(gene.exp, L, k.arg.list = c(5, 10, 12, 15, 18, 20, 25), L4.
   #calculate SVD ahead of time to save some time
   #########################
   message("Computing SVD")
-  set.seed(123)
+  set.seed(frac.seed)
   svdres=rsvd::rsvd(gene.exp.hide, k = max(k.arg.list)+1) #to_drop -> +1
   svdres=rotateSVD(svdres)
   #########################
@@ -869,8 +877,8 @@ manifoldDecomp_adaptive=function(Y,
                                  max.iter=200, 
                                  tol=5e-6, 
                                  trace=F,
-                                 rseed=NULL, 
-                                 B=NULL, 
+                                 B=NULL,  #NULL, given
+                                 B.random=F, 
                                  scale=1,  
                                  adaptive.frac=0.05, 
                                  adaptive.iter=30, 
@@ -880,7 +888,8 @@ manifoldDecomp_adaptive=function(Y,
                                  pos.B = F, 
                                  cor.thr = 0.8, 
                                  save.complete = F, 
-                                 verbose = T){
+                                 verbose = T,
+                                 random.seed = 123){
 
   pos.adj=3
   ng=nrow(Y)
@@ -905,8 +914,10 @@ manifoldDecomp_adaptive=function(Y,
           message("Add random LV")
         }#if vebose
 
-        #set.seed(rseed)
+        #set.seed(random.seed)
         #B.base <- matrix(rnorm(k*ncol(B)), nrow =k, ncol = ncol(B) )
+        
+        #not random
         B.base <- t(matrix(apply(B,2,mean), ncol = k, nrow = ncol(B)))
         B.base[1:nrow(B),] <- B
         B <- B.base
@@ -925,7 +936,7 @@ manifoldDecomp_adaptive=function(Y,
       message("Computing SVD")
     }#if verbose
 
-    set.seed(123)
+    set.seed(random.seed)
     svdres=rsvd(Y, k = k)
 
     svdres=rotateSVD(svdres)
@@ -934,12 +945,12 @@ manifoldDecomp_adaptive=function(Y,
   }else if (svdres == "nmf"){
     
     #use nmf to initailize but also run svd to get L1, L2, etc
-    set.seed(123)
+    set.seed(random.seed)
     svdres=rsvd(Y, k = k) 
     svdres=rotateSVD(svdres)
     
     #svdres$u, svdres$v
-    nmf.res <- RcppML::nmf(Y, k = k, verbose = F, seed = 1)
+    nmf.res <- RcppML::nmf(Y, k = k, verbose = F, seed = random.seed)
     svdres$u <- nmf.res$w
     svdres$v <- t(nmf.res$h)
     
@@ -987,14 +998,14 @@ manifoldDecomp_adaptive=function(Y,
   }#B initialization
 
 
-  if (!is.null(rseed)) {
+  if (B.random) {
     if (verbose){
       message("using random start")
     }#if verbose
 
-    set.seed(rseed)
+    set.seed(random.seed)
     B = t(apply(B, 1, sample))
-  }#is.null rseed
+  }#is.null 
 
 
 
@@ -1214,7 +1225,17 @@ manifoldDecomp_adaptive=function(Y,
 #' @import ggpubr
 #' @details This function requires `uwot` and `Rtsne`. Make sure they are installed.
 #' @export
-Cluster_2Dplot <- function(LVs, cluster.label = NULL, cluster.option = "kmeans", cluster.label.scale = F, num.of.cluster = NULL,option = "umap", random.seed = 1, pt.size = 2, verbose = T, umap.opt = 30, tsne.opt = 30){
+Cluster_2Dplot <- function(LVs, 
+                           cluster.label = NULL, 
+                           cluster.option = "kmeans", 
+                           cluster.label.scale = F, 
+                           num.of.cluster = NULL,
+                           option = "umap", 
+                           random.seed = 1, 
+                           pt.size = 2, 
+                           verbose = T, 
+                           umap.opt = 40, 
+                           tsne.opt = 30){
 
   message(paste0("Generate ", option, " plot."))
   set.seed(random.seed)

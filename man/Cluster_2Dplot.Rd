@@ -14,7 +14,7 @@ Cluster_2Dplot(
   random.seed = 1,
   pt.size = 2,
   verbose = T,
-  umap.opt = 30,
+  umap.opt = 40,
   tsne.opt = 30
 )
 }

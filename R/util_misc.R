@@ -39,7 +39,20 @@ L2Norm <- function(mat, MARGIN = 1){
 #' @import mclust
 #' @details This function requires `Seurat`. Make sure it is installed
 #' @export
-swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num = NULL, km.num = NULL, ld.num.neighbors = 20, ld.resolution = NULL, ld.NN = "SNN", balanced.num = NULL, balanced.cluster.size = NULL, random.seed = 1, weights = NULL){
+swk <- function(kmeans.input, 
+                method = "mclust", 
+                L2norm = T, 
+                zscore = F, 
+                mclust.model = "EEE", 
+                mclust.num = NULL, 
+                km.num = NULL, 
+                ld.num.neighbors = 20, 
+                ld.resolution = NULL, 
+                ld.NN = "SNN", 
+                balanced.num = NULL, 
+                balanced.cluster.size = NULL, 
+                random.seed = 1, 
+                weights = NULL){
 
   #flip the coordinates
   if (ncol(kmeans.input) > nrow(kmeans.input) ){
@@ -96,7 +109,7 @@ swk <- function(kmeans.input, method = "mclust", L2norm = T, zscore = F, mclust.
     if (is.null(partition)){
 
       message("Supervised mclust")
-      set.seed(1)
+      set.seed(random.seed)
 
       training.index <- sample(1:nrow(kmeans.input), nrow(kmeans.input)*0.2)
       test.index <- setdiff(1:nrow(kmeans.input), training.index)
@@ -368,7 +381,11 @@ moranI_all <- function(x, L){
 
 
 #use swk
-split_chunk <- function(x, cluster.size, random.seed = 1, reference_set = NULL, reference_set_opt){
+split_chunk <- function(x, 
+                        cluster.size, 
+                        random.seed = 1, 
+                        reference_set = NULL, 
+                        reference_set_opt){
 
 
   num.of.chunk <- length(x)%/% cluster.size
@@ -622,7 +639,14 @@ GSEA <- function(gene.list, gene.all = NULL, dbs, pathway, number.of.top.pathway
 #' @details This function requires `Seurat`. Make sure it is installed
 #' @export
 #' 
-Cluster.Finetune.pre <- function(input, method = "mclust", L2norm = T, zscore = F, mclust.model = "EEE", mclust.num.args = c(4, 6, 8, 9, 10, 11, 12, 14, 16, 18, 20), ld.resolution.args = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5),  random.seed = 1){
+Cluster.Finetune.pre <- function(input, 
+                                 method = "mclust", 
+                                 L2norm = T, 
+                                 zscore = F, 
+                                 mclust.model = "EEE", 
+                                 mclust.num.args = c(4, 6, 8, 9, 10, 11, 12, 14, 16, 18, 20), 
+                                 ld.resolution.args = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5),  
+                                 random.seed = 1){
     
   par.list <- list()
   set.seed(random.seed)
@@ -666,7 +690,7 @@ Cluster.Finetune.pre <- function(input, method = "mclust", L2norm = T, zscore = 
       if (is.null(partition)){
         
         message("Supervised mclust")
-        set.seed(1)
+        set.seed(random.seed)
         
         training.index <- sample(1:nrow(input), nrow(input)*0.2)
         test.index <- setdiff(1:nrow(input), training.index)

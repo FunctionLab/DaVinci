@@ -16,8 +16,8 @@ manifoldDecomp_adaptive(
   max.iter = 200,
   tol = 5e-06,
   trace = F,
-  rseed = NULL,
   B = NULL,
+  B.random = F,
   scale = 1,
   adaptive.frac = 0.05,
   adaptive.iter = 30,
@@ -27,7 +27,8 @@ manifoldDecomp_adaptive(
   pos.B = F,
   cor.thr = 0.8,
   save.complete = F,
-  verbose = T
+  verbose = T,
+  random.seed = 123
 )
 }
 \arguments{

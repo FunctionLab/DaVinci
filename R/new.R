@@ -276,7 +276,14 @@ self_deco <- function(proj,
 #continuous smoothing or voting
 #nearest neighbor: label imputation
 #nearest neighbor: value smoothing
-refinement <- function(y, coor, neighbor.option="KNN", neighbor.arg = 6, radius.arg = 10, tasks = "discrete", self = F, random.seed = 1){
+refinement <- function(y, 
+                       coor, 
+                       neighbor.option="KNN", 
+                       neighbor.arg = 6, 
+                       radius.arg = 10, 
+                       tasks = "discrete", 
+                       self = F, 
+                       random.seed = 1){
 
   set.seed(random.seed)
   #get the neighbor index per spot
@@ -531,9 +538,9 @@ Horizontal.Integration.Assemble <- function(
       message("Working on k=", k.arg)
       
       if (is.null(s0)){
-        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, verbose = F)  
+        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, verbose = F, random.seed = random.seed)  
       }else{
-        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = s0, verbose = F)  
+        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = s0, verbose = F, random.seed = random.seed)  
       }#else
       
       #saveRDS(ICAp.res, file = paste0(output.folder, "/", save.label, "@", normalize.version, "@k=", k.arg,".RDS") )
@@ -582,7 +589,7 @@ Horizontal.Integration.Assemble <- function(
     embed.list.finetune <- list()
     for (ii in 1:length(embed.list)){
       
-      embed.list.finetune[[ii]] <- manifoldDecomp_adaptive( Y.list[[ii]], L.list[[ii]], k = nrow(embed.list[[ii]]$LVs), B = embed.list[[ii]]$LVs, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = exhaustive.list[[ii]][[1]]$shur0, verbose = F)
+      embed.list.finetune[[ii]] <- manifoldDecomp_adaptive( Y.list[[ii]], L.list[[ii]], k = nrow(embed.list[[ii]]$LVs), B = embed.list[[ii]]$LVs, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = exhaustive.list[[ii]][[1]]$shur0, verbose = F, random.seed = random.seed)
             
     }#for ii
 
