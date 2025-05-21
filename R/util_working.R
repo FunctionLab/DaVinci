@@ -268,12 +268,50 @@ ClusterPlot_fast <- function(dat, cluster.label, pt.size=2, text.size=7, ratio =
 #' Visualize discrete variables only with coordinate information
 #' @import ggpubr
 #' @export
-scatter.DiscretePlot <- function(coor, cluster.label, pt.size = 2, ratio = NULL, plot.all = F, to_highlight = NULL){
+scatter.DiscretePlot <- function(coor, 
+                                 cluster.label, 
+                                 pt.size = 2, 
+                                 ratio = NULL, 
+                                 plot.all = F, 
+                                 to_highlight = NULL){
 
   cluster.label <- as.character(cluster.label)
   cluster.unique <- sort(unique(cluster.label))
 
-  dat.plot <- data.frame(x= coor[,1], y = coor[,2], cluster = cluster.label)
+  #align with the defined orientation
+  ###################################################
+
+  coor.visual <- coor
+
+  if (orientation == "xy"){
+    coor.visual[,1] <- coor[,1]
+    coor.visual[,2] <- coor[,2]
+  }else if (orientation == "-xy"){  
+    coor.visual[,1] <- -coor[,1]
+    coor.visual[,2] <- coor[,2]
+  }else if (orientation == "x-y"){
+    coor.visual[,1] <- coor[,1]
+    coor.visual[,2] <- -coor[,2]
+  }else if (orientation == "-x-y"){
+    coor.visual[,1] <- -coor[,1]
+    coor.visual[,2] <- -coor[,2]
+  }else if (orientation == "yx"){
+    coor.visual[,1] <- coor[,2]
+    coor.visual[,2] <- coor[,1]
+  }else if (orientation == "-yx"){
+    coor.visual[,1] <- -coor[,2]
+    coor.visual[,2] <- coor[,1]
+  }else if (orientation == "y-x"){
+    coor.visual[,1] <- coor[,2]
+    coor.visual[,2] <- -coor[,1]
+  }else if (orientation == "-y-x"){
+    coor.visual[,1] <- -coor[,2]
+    coor.visual[,2] <- -coor[,1]
+  }#else if 
+
+
+
+  dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], cluster = cluster.label)
 
    if (plot.all){
 
@@ -433,28 +471,66 @@ LvPlot_fast <- function(dat, val, pt.size=2, ratio = 1, use.myratio=F, plot.all 
 #' @import ggpubr
 #' @export
 scatter.FeaturePlot <- function(
-  coor, 
-  loading=NULL, 
-  LVs, 
-  LV.index = 1, 
-  gene.verbose = F, 
-  pt.size = 2, 
-  ratio = NULL, 
-  x.offset = 1.05, 
-  font.size = 7, 
-  plot.all = F
-  ){
+    coor, 
+    loading=NULL, 
+    LVs, 
+    LV.index = 1, 
+    gene.verbose = F, 
+    pt.size = 2, 
+    ratio = NULL, 
+    x.offset = 1.05, 
+    font.size = 7, 
+    plot.all = F,
+    orientation = "xy"
+    ){
 
-  if (gene.verbose & is.null(loading)){
-    stop("loading can't be NULL if gene names will be printed out")
-  }#if
+    if (gene.verbose & is.null(loading)){
+      stop("loading can't be NULL if gene names will be printed out")
+    }#if
+
+
+    #align with the pre-defined orientation
+    #####################################################
+    coor.visual <- coor
+
+    if (orientation == "xy"){
+      coor.visual[,1] <- coor[,1]
+      coor.visual[,2] <- coor[,2]
+    }else if (orientation == "-xy"){  
+      coor.visual[,1] <- -coor[,1]
+      coor.visual[,2] <- coor[,2]
+    }else if (orientation == "x-y"){
+      coor.visual[,1] <- coor[,1]
+      coor.visual[,2] <- -coor[,2]
+    }else if (orientation == "-x-y"){
+      coor.visual[,1] <- -coor[,1]
+      coor.visual[,2] <- -coor[,2]
+    }else if (orientation == "yx"){
+      coor.visual[,1] <- coor[,2]
+      coor.visual[,2] <- coor[,1]
+    }else if (orientation == "-yx"){
+      coor.visual[,1] <- -coor[,2]
+      coor.visual[,2] <- coor[,1]
+    }else if (orientation == "y-x"){
+      coor.visual[,1] <- coor[,2]
+      coor.visual[,2] <- -coor[,1]
+    }else if (orientation == "-y-x"){
+      coor.visual[,1] <- -coor[,2]
+      coor.visual[,2] <- -coor[,1]
+    }#else if 
+
+
+
 
   #case 1: single vector
   #no gene verbose in this case
   if (is.numeric(LVs) & is.vector(LVs)){
     
-    dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs)
-    p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
+    dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs)
+    p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
+                  geom_point(size = pt.size)+
+                  theme_void()+
+                  paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
     
     if (!is.null(ratio)){
         p <- p+ggplot2::theme(aspect.ratio = ratio)
@@ -477,8 +553,13 @@ scatter.FeaturePlot <- function(
     }#if
 
     for (ii in 1:nrow(LVs)){
-      dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[ii,])
-      p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(rownames(LVs)[ii])+ggplot2::theme(aspect.ratio = ratio)
+      dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs[ii,])
+      p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
+                 geom_point(size = pt.size)+
+                 theme_void()+
+                 paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
+                 ggtitle(rownames(LVs)[ii])+
+                 ggplot2::theme(aspect.ratio = ratio)
     }#for ii
 
     p <- ggarrange(plotlist = p)
@@ -491,7 +572,7 @@ scatter.FeaturePlot <- function(
       print(sort(loading[,LV.index], decreasing = T)[1:10])
     }#if
 
-    dat.plot <- data.frame(x= coor[,1], y = coor[,2], val = LVs[LV.index,])
+    dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs[LV.index,])
 
     p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(rownames(LVs)[LV.index])+ggplot2::theme(aspect.ratio = ratio)
 
@@ -537,32 +618,6 @@ scatter.FeaturePlot.list <- function(LVs,
               
               for (ii in 1:length(dataset.opts)){
                     coor.visual <- coor.list[[ii]]
-        
-            if (orientation == "xy"){
-                coor.visual[,1] <- coor.list[[ii]][,1]
-                coor.visual[,2] <- coor.list[[ii]][,2]
-            }else if (orientation == "-xy"){  
-                coor.visual[,1] <- -coor.list[[ii]][,1]
-                coor.visual[,2] <- coor.list[[ii]][,2]
-            }else if (orientation == "x-y"){
-                coor.visual[,1] <- coor.list[[ii]][,1]
-                coor.visual[,2] <- -coor.list[[ii]][,2]
-            }else if (orientation == "-x-y"){
-                coor.visual[,1] <- -coor.list[[ii]][,1]
-                coor.visual[,2] <- -coor.list[[ii]][,2]
-            }else if (orientation == "yx"){
-                coor.visual[,1] <- coor.list[[ii]][,2]
-                coor.visual[,2] <- coor.list[[ii]][,1]
-            }else if (orientation == "-yx"){
-                coor.visual[,1] <- -coor.list[[ii]][,2]
-                coor.visual[,2] <- coor.list[[ii]][,1]
-            }else if (orientation == "y-x"){
-                coor.visual[,1] <- coor.list[[ii]][,2]
-                coor.visual[,2] <- -coor.list[[ii]][,1]
-            }else if (orientation == "-y-x"){
-                coor.visual[,1] <- -coor.list[[ii]][,2]
-                coor.visual[,2] <- -coor.list[[ii]][,1]
-            }#else if 
 
                     #make sure aligned
                     LL <- LVs[mat.slice.id==dataset.opts[ii], jj]
@@ -572,12 +627,22 @@ scatter.FeaturePlot.list <- function(LVs,
                     
                     if (is.null(ratio)){
                       
-                      plot.list[[count]] <- scatter.FeaturePlot(coor.visual, LVs = LL, plot.all=F , pt.size = pt.size, ratio = NULL)+
+                      plot.list[[count]] <- scatter.FeaturePlot(coor.visual, 
+                                                                LVs = LL, 
+                                                                plot.all=F, 
+                                                                pt.size = pt.size, 
+                                                                ratio = NULL,
+                                                                orientation = orientation)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
             
                     }else{
-                      plot.list[[count]] <- scatter.FeaturePlot(coor.visual, LVs = LL, plot.all=F , pt.size = pt.size, ratio = ratio[dataset.opts[ii]])+
+                      plot.list[[count]] <- scatter.FeaturePlot(coor.visual, 
+                                                                LVs = LL, 
+                                                                plot.all=F, 
+                                                                pt.size = pt.size, 
+                                                                ratio = ratio[dataset.opts[ii]],
+                                                                orientation = orientation)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
                     }#else
@@ -636,44 +701,26 @@ scatter.DiscretePlot.list <- function(cluster.label,
 
             coor.visual <- coor.list[[ii]]
 
-            if (orientation == "xy"){
-                coor.visual[,1] <- coor.list[[ii]][,1]
-                coor.visual[,2] <- coor.list[[ii]][,2]
-            }else if (orientation == "-xy"){  
-                coor.visual[,1] <- -coor.list[[ii]][,1]
-                coor.visual[,2] <- coor.list[[ii]][,2]
-            }else if (orientation == "x-y"){
-                coor.visual[,1] <- coor.list[[ii]][,1]
-                coor.visual[,2] <- -coor.list[[ii]][,2]
-            }else if (orientation == "-x-y"){
-                coor.visual[,1] <- -coor.list[[ii]][,1]
-                coor.visual[,2] <- -coor.list[[ii]][,2]
-            }else if (orientation == "yx"){
-                coor.visual[,1] <- coor.list[[ii]][,2]
-                coor.visual[,2] <- coor.list[[ii]][,1]
-            }else if (orientation == "-yx"){
-                coor.visual[,1] <- -coor.list[[ii]][,2]
-                coor.visual[,2] <- coor.list[[ii]][,1]
-            }else if (orientation == "y-x"){
-                coor.visual[,1] <- coor.list[[ii]][,2]
-                coor.visual[,2] <- -coor.list[[ii]][,1]
-            }else if (orientation == "-y-x"){
-                coor.visual[,1] <- -coor.list[[ii]][,2]
-                coor.visual[,2] <- -coor.list[[ii]][,1]
-            }#else if 
-
+            
             
             #make sure aligned
             pp <- cluster.label[mat.slice.id==dataset.opts[ii]]
             partition <- pp[rownames(coor.visual)]
 
             if (is.null(ratio)){
-                plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, partition, pt.size = pt.size, ratio = ratio)+
+                plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, 
+                                                        partition, 
+                                                        pt.size = pt.size, 
+                                                        ratio = ratio, 
+                                                        orientation = orientation)+
                                    colorPalette(unique(cluster.label), fill = F)+
                                    ggtitle(dataset.opts[ii])+
                                    theme(plot.title = element_text(size = title.size))
             }else{
-                plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, partition, pt.size = pt.size, ratio = ratio[dataset.opts[ii]])+
+                plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, 
+                                                        partition, 
+                                                        pt.size = pt.size, 
+                                                        ratio = ratio[dataset.opts[ii]], orientation = orientation)+
                                    colorPalette(unique(cluster.label), fill = F)+
                                    ggtitle(dataset.opts[ii])+
                                    theme(plot.title = element_text(size = title.size))
