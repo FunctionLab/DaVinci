@@ -273,7 +273,8 @@ scatter.DiscretePlot <- function(coor,
                                  pt.size = 2, 
                                  ratio = NULL, 
                                  plot.all = F, 
-                                 to_highlight = NULL){
+                                 to_highlight = NULL,
+                                 orientation = "xy"){
 
   cluster.label <- as.character(cluster.label)
   cluster.unique <- sort(unique(cluster.label))

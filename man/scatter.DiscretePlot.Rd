@@ -10,7 +10,8 @@ scatter.DiscretePlot(
   pt.size = 2,
   ratio = NULL,
   plot.all = F,
-  to_highlight = NULL
+  to_highlight = NULL,
+  orientation = "xy"
 )
 }
 \description{
