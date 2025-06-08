@@ -771,7 +771,7 @@ md.default <- function(Y,
                        right.shur, 
                        adaptive.iter, 
                        adaptive.frac, 
-                       trace =F, 
+                       trace = F, 
                        tol, 
                        pos, 
                        pos.B, 
@@ -865,15 +865,22 @@ md.default <- function(Y,
     #stop early
     if (early_flag){
       if (i > 20){
-        B.cor.res <- cor(t(B))
-        B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
-
-        if (sum(B.cor.val>=thr)>1){
-          return(list(flag = "Shrink"))
-        }#if
+        
+        if (min(apply(B, 1, sd) ) < 1e-7){
+          
+          flag <- "Shrink"
+          
+        }else{
+          B.cor.res <- cor(t(B))
+          B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
+          
+          if (sum(B.cor.val>=thr)>1){
+            return(list(flag = "Shrink"))
+          }#if
+        }#else
+        
       }#if i>20
-
-    }#if
+    }#if early_flag
 
   }#for i
 
@@ -1211,21 +1218,30 @@ manifoldDecomp_adaptive=function(Y,
   Zraw <- md.run$Zraw
   Zproject=Z%*%solve(crossprod(Z)+L2*diag(k))
 
+
   if (to_drop){
 
     if (verbose){
       message("drop")
     }#if verbose
 
-    #eliminate the one with smaller variance
-    cor.res <- cor(t(B))
-    LV.var <- VarianceExplained(Y, Z, B, option = "simple", normalize = F)
-    drop.index <- which(cor.res == max(cor.res[upper.tri(cor.res)]) & upper.tri(cor.res), arr.ind = T)
-    if (nrow(drop.index)!=1){
-      warning(nrow(drop.index))
-    }#if
-    LV.to_drop <- drop.index[which.min(LV.var[drop.index])]
-
+    B.sd <- apply(B, 1, sd)
+    if (min( B.sd) < 1e-7){
+      
+      LV.to_drop <- which.min(B.sd)
+    }else{
+      
+      #eliminate the one with smaller variance
+      cor.res <- cor(t(B))
+      LV.var <- VarianceExplained(Y, Z, B, option = "simple", normalize = F)
+      drop.index <- which(cor.res == max(cor.res[upper.tri(cor.res)]) & upper.tri(cor.res), arr.ind = T)
+      if (nrow(drop.index)!=1){
+        warning(nrow(drop.index))
+      }#if
+      LV.to_drop <- drop.index[which.min(LV.var[drop.index])]
+      
+    }#else
+    
     #keep a record
     B0 <- B
     Z0 <- Z
