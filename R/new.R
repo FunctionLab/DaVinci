@@ -463,7 +463,7 @@ Proximity.Dependency.scatter <- function(gene.name,
   
   to_plot <- data.frame(x = dd, y = yy)
   
-  pp <- ggplot(to_plot, aes(x=x,y=log2(y+1)))+
+  pp <- ggplot(to_plot, aes(x=x,y=y))+
     geom_point(size = 2)+
     theme_pubr(base_size = 30)+
     geom_smooth(method = "lm")+

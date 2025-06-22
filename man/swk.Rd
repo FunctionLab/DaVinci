@@ -18,7 +18,8 @@ swk(
   balanced.num = NULL,
   balanced.cluster.size = NULL,
   random.seed = 1,
-  weights = NULL
+  weights = NULL,
+  verbose = T
 )
 }
 \description{

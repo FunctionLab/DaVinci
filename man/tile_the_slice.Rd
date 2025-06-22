@@ -4,7 +4,7 @@
 \alias{tile_the_slice}
 \title{Tile the slice for scalable implementation}
 \usage{
-tile_the_slice(coord, random.seed = 1, L2_number = 1000, tile.minimum = NULL)
+tile_the_slice(coord, random.seed = 1, L2_number = 1000, tile.minimum = 3)
 }
 \description{
 Tile the slice for scalable implementation

@@ -52,7 +52,8 @@ swk <- function(kmeans.input,
                 balanced.num = NULL, 
                 balanced.cluster.size = NULL, 
                 random.seed = 1, 
-                weights = NULL){
+                weights = NULL,
+                verbose = T){
 
   #flip the coordinates
   if (ncol(kmeans.input) > nrow(kmeans.input) ){
@@ -96,7 +97,10 @@ swk <- function(kmeans.input,
     #if is.null
     if (is.null(partition)){
       count <- 0
-      message("Repeat mclust")
+      if (verbose){
+        message("Repeat mclust")
+      }#if verbose
+      
       while ( (is.null(partition))& (count < 3)) {
         mclust.res <- mclust::Mclust(kmeans.input, G = mclust.num, modelNames = mclust.model, verbose = F)
         partition <- mclust.res$classification
@@ -108,7 +112,10 @@ swk <- function(kmeans.input,
     ##############
     if (is.null(partition)){
 
-      message("Supervised mclust")
+      if (verbose){
+        message("Supervised mclust")
+      }#if verbose
+      
       set.seed(random.seed)
 
       training.index <- sample(1:nrow(kmeans.input), nrow(kmeans.input)*0.2)
@@ -139,7 +146,10 @@ swk <- function(kmeans.input,
 
   }else if (method %in% c("leiden", "louvain")){
 
-    message("Number of neighbors is ", ld.num.neighbors)
+    if (verbose){
+      message("Number of neighbors is ", ld.num.neighbors)
+    }#if verbose
+    
 
     if (is.null(ld.resolution)){
       stop("Resolution parameter is not set in leiden/louvain")
@@ -151,16 +161,27 @@ if (!requireNamespace("Seurat", quietly = TRUE)) {
 
     snn.res <- Seurat::FindNeighbors(kmeans.input, k.param = ld.num.neighbors, return.neighbor = F, compute.SNN = T, verbose = F)
     if (ld.NN =="SNN"){
-      message("SNN")
+
+      if (verbose){
+        message("SNN")
+      }#if verbose
+      
       leiden.input <- snn.res$snn
 
     }else if (ld.NN=="SNN.binary"){
-      message("SNN.binary")
+      if (verbose){
+        message("SNN.binary")
+      }#if verbose
+      
       leiden.input <- snn.res$snn
       leiden.input[leiden.input!=0] <- 1
 
     }else if (ld.NN=="knn"){
-      message("kNN")
+      
+      if (verbose){
+        message("kNN")
+      }#if verbose
+      
       leiden.input.index <- snn.res$nn
       leiden.input <- as.matrix(dist(kmeans.input))
 
@@ -170,7 +191,10 @@ if (!requireNamespace("Seurat", quietly = TRUE)) {
       leiden.input[which(as.matrix(leiden.input.index)==0)] <- 0
 
     }else if (ld.NN=="knn.binary"){
-      message("kNN.binary")
+      if (verbose){
+        message("kNN.binary")
+      }#if verbose
+      
       leiden.input <- snn.res$nn
 
     }#else if
@@ -204,7 +228,9 @@ if (!requireNamespace("Seurat", quietly = TRUE)) {
   if (is.null(partition)){
     stop("Number of unique clusters is 0")
   }else{
-    print(paste0("Number of unique clusters is ", length(unique(partition))))
+    if (verbose){
+      print(paste0("Number of unique clusters is ", length(unique(partition))))
+    }#if verbose   
 
     names(partition) <- rownames(kmeans.input)
     return(partition)

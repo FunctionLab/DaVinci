@@ -193,7 +193,10 @@ hcbottom <- function(mat,
 #' Tile the slice for scalable implementation
 #' @import sf
 #' @export
-tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000, tile.minimum = NULL){
+tile_the_slice <- function(coord, 
+                           random.seed = 1, 
+                           L2_number = 1000, 
+                           tile.minimum = 3){
   if (is.null(rownames(coord))){
     stop("Input doesn't have rownames.")
   }#if
@@ -273,7 +276,7 @@ tile_the_slice <- function(coord, random.seed = 1, L2_number = 1000, tile.minimu
     if (length(temp)<L2_size){
       ids_L2[temp] <- 1
     }else{
-      ids_L2[temp] <- swk(coord[temp,], method = "balanced", L2norm = F, balanced.cluster.size = L2_size, random.seed = random.seed)
+      ids_L2[temp] <- swk(coord[temp,], method = "balanced", L2norm = F, balanced.cluster.size = L2_size, random.seed = random.seed, verbose = F)
     }#else
 
   }#for ii

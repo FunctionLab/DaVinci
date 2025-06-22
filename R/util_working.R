@@ -274,6 +274,7 @@ scatter.DiscretePlot <- function(coor,
                                  ratio = NULL, 
                                  plot.all = F, 
                                  to_highlight = NULL,
+                                 to_highlight.scatter = F,
                                  orientation = "xy"){
 
   cluster.label <- as.character(cluster.label)
@@ -337,8 +338,10 @@ scatter.DiscretePlot <- function(coor,
     
     if (is.null(to_highlight)){
 
-        p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+geom_point(size = pt.size)+theme_void()+colorPalette(dat.plot$cluster, fill = F)
-
+        p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+
+             geom_point(size = pt.size)+
+             theme_void()+
+             colorPalette(dat.plot$cluster, fill = F)
     }else{
       #highlight one specific cluster
 
@@ -346,8 +349,20 @@ scatter.DiscretePlot <- function(coor,
       names(values) <- cluster.unique
       values[as.character(to_highlight)] <- "red"
 
-      p <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::scale_color_manual(values = values)
-
+      if (to_highlight.scatter){
+          #split the grey and red
+          p <- ggplot()+
+               scattermore::geom_scattermore(data = dat.plot[dat.plot$cluster!=to_highlight,], aes(x = x, y = y, color = cluster))+
+               geom_point(data = dat.plot[dat.plot$cluster==to_highlight,], aes(x = x, y = y, color = cluster))+
+               theme_void()+
+               ggplot2::scale_color_manual(values = values)  
+      }else{
+        p <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+
+             geom_point(size= pt.size)+
+             theme_void()+
+             ggplot2::scale_color_manual(values = values)
+      }#else
+      
     }#else
     
     if (!is.null(ratio)){
