@@ -4,7 +4,7 @@
 \alias{colorPalette}
 \title{Return the color palette given cluster vector}
 \usage{
-colorPalette(partition, fill = T)
+colorPalette(partition, fill = T, raw = F)
 }
 \description{
 Return the color palette given cluster vector

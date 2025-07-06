@@ -116,7 +116,7 @@ unicode.convert <- function(x){
 #https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
 #' Return the color palette given cluster vector
 #' @export
-colorPalette <- function(partition, fill = T){
+colorPalette <- function(partition, fill = T, raw = F){
   num.of.clusters <- length(unique(partition))
   #val.names <- sort(as.character(1:num.of.clusters))
 
@@ -131,11 +131,19 @@ colorPalette <- function(partition, fill = T){
 
   #names(values) <- val.names
   names(values) <- as.character(sort(unique(partition)))
-  if (fill){
-    return(ggplot2::scale_fill_manual(values = values))
+
+  if (raw){
+    return(values)
   }else{
-    return(ggplot2::scale_color_manual(values = values))
+  
+    if (fill){
+      return(ggplot2::scale_fill_manual(values = values))
+    }else{
+      return(ggplot2::scale_color_manual(values = values))
+    }#else
+  
   }#else
+  
 
 }#colorPalette
 
@@ -274,7 +282,8 @@ scatter.DiscretePlot <- function(coor,
                                  ratio = NULL, 
                                  plot.all = F, 
                                  to_highlight = NULL,
-                                 to_highlight.scatter = F,
+                                 raster = F,
+                                 raster.dpi = 300,
                                  orientation = "xy"){
 
   cluster.label <- as.character(cluster.label)
@@ -325,7 +334,20 @@ scatter.DiscretePlot <- function(coor,
       names(values) <- cluster.unique
       values[as.character(cluster.highlight)] <- "red"
 
-      p[[ii]] <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+geom_point(size= pt.size)+theme_void()+ggplot2::scale_color_manual(values = values)
+      if (raster){
+        
+        p[[ii]] <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+
+                 ggrastr::geom_point_rast(size= pt.size, raster.dpi = raster.dpi)+
+                 theme_void()+
+                 ggplot2::scale_color_manual(values = values)
+      }else{
+
+        p[[ii]] <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+
+                 geom_point(size= pt.size)+
+                 theme_void()+
+                 ggplot2::scale_color_manual(values = values)
+      }#else
+      
       if (!is.null(ratio)){
           p[[ii]] <- p[[ii]]+ggplot2::theme(aspect.ratio = ratio)
       }#if
@@ -338,10 +360,18 @@ scatter.DiscretePlot <- function(coor,
     
     if (is.null(to_highlight)){
 
-        p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+
+        if (raster){
+            p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+
+             ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
+             theme_void()+
+             colorPalette(dat.plot$cluster, fill = F)
+        }else{
+            p <- ggplot(dat.plot, aes(x=x,y = y, col = cluster))+
              geom_point(size = pt.size)+
              theme_void()+
              colorPalette(dat.plot$cluster, fill = F)
+        }#else
+      
     }else{
       #highlight one specific cluster
 
@@ -349,10 +379,10 @@ scatter.DiscretePlot <- function(coor,
       names(values) <- cluster.unique
       values[as.character(to_highlight)] <- "red"
 
-      if (to_highlight.scatter){
+      if (raster){
           #split the grey and red
           p <- ggplot()+
-               scattermore::geom_scattermore(data = dat.plot[dat.plot$cluster!=to_highlight,], aes(x = x, y = y, color = cluster))+
+               ggrastr::geom_point_rast(data = dat.plot[dat.plot$cluster!=to_highlight,], aes(x = x, y = y, color = cluster), raster.dpi = raster.dpi)+
                geom_point(data = dat.plot[dat.plot$cluster==to_highlight,], aes(x = x, y = y, color = cluster))+
                theme_void()+
                ggplot2::scale_color_manual(values = values)  
@@ -497,7 +527,9 @@ scatter.FeaturePlot <- function(
     x.offset = 1.05, 
     font.size = 7, 
     plot.all = F,
-    orientation = "xy"
+    orientation = "xy",
+    raster = F,
+    raster.dpi = 300
     ){
 
     if (gene.verbose & is.null(loading)){
@@ -543,10 +575,19 @@ scatter.FeaturePlot <- function(
   if (is.numeric(LVs) & is.vector(LVs)){
     
     dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs)
-    p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
+
+    if (raster){
+      p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
+                  ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
+                  theme_void()+
+                  paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
+    }else{
+      p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                   geom_point(size = pt.size)+
                   theme_void()+
                   paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
+    }#else
+    
     
     if (!is.null(ratio)){
         p <- p+ggplot2::theme(aspect.ratio = ratio)
@@ -570,12 +611,23 @@ scatter.FeaturePlot <- function(
 
     for (ii in 1:nrow(LVs)){
       dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs[ii,])
-      p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
+
+      if (raster){
+        p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
+                 ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
+                 theme_void()+
+                 paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
+                 ggtitle(rownames(LVs)[ii])+
+                 ggplot2::theme(aspect.ratio = ratio)
+      }else{
+        p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                  geom_point(size = pt.size)+
                  theme_void()+
                  paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
                  ggtitle(rownames(LVs)[ii])+
                  ggplot2::theme(aspect.ratio = ratio)
+      }#else
+      
     }#for ii
 
     p <- ggarrange(plotlist = p)
@@ -590,8 +642,22 @@ scatter.FeaturePlot <- function(
 
     dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs[LV.index,])
 
-    p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+geom_point(size = pt.size)+theme_void()+paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+ggtitle(rownames(LVs)[LV.index])+ggplot2::theme(aspect.ratio = ratio)
-
+    if (raster){
+        p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+
+              ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
+              theme_void()+
+              paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
+              ggtitle(rownames(LVs)[LV.index])+
+              ggplot2::theme(aspect.ratio = ratio)
+    }else{
+        p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+
+              geom_point(size = pt.size)+
+              theme_void()+
+              paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
+              ggtitle(rownames(LVs)[LV.index])+
+              ggplot2::theme(aspect.ratio = ratio)
+    }#else
+    
     if (gene.verbose){
       p <- p+annotate("text", x = max(dat.plot$x)*x.offset , y = median(dat.plot$y), label = paste(names(sort(loading[,LV.index], decreasing = T)[1:15]), collapse = "\n"), size = font.size)
     } #if

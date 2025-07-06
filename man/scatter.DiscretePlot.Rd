@@ -11,7 +11,8 @@ scatter.DiscretePlot(
   ratio = NULL,
   plot.all = F,
   to_highlight = NULL,
-  to_highlight.scatter = F,
+  raster = F,
+  raster.dpi = 300,
   orientation = "xy"
 )
 }

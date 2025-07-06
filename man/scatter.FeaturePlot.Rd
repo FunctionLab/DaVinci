@@ -15,7 +15,9 @@ scatter.FeaturePlot(
   x.offset = 1.05,
   font.size = 7,
   plot.all = F,
-  orientation = "xy"
+  orientation = "xy",
+  raster = F,
+  raster.dpi = 300
 )
 }
 \description{
