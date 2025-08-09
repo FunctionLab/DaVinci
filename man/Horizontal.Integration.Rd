@@ -13,8 +13,9 @@ Horizontal.Integration(
   LVs.filter.thr = 0.8,
   mod = "all",
   remove.LV1 = F,
-  L2.option = "L2norm",
-  LV.filter = T
+  L2.option = "default",
+  LV.filter = T,
+  batch.correction = "harmony"
 )
 }
 \arguments{

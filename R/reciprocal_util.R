@@ -267,8 +267,9 @@ Horizontal.Integration <- function(Y.list,
                                    LVs.filter.thr = 0.8, 
                                    mod = "all", 
                                    remove.LV1 = F, 
-                                   L2.option = "L2norm", 
-                                   LV.filter = T){
+                                   L2.option = "default", 
+                                   LV.filter = T,
+                                   batch.correction = "harmony"){
   
   if ((length(Y.list) > 30) & (mod == "all")){
     message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
@@ -312,13 +313,22 @@ Horizontal.Integration <- function(Y.list,
       LVs <- LVs[which(!rownames(LVs) %in% remove.LV1),]
   }#if 
   
-  #harmony
+  
+  #batch correction
   ##########################################################
-  message("Batch correction starts.")
-  LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
-  rownames(LVs_embeddings) <- colnames(LVs)
-  message("Batch correction finishes.")
+   if (is.null(batch.correction)){
 
+    LVs_embeddings <- t(LVs)
+
+  }else if (batch.correction=="harmony"){
+
+    message("Batch correction starts.")
+    LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
+    rownames(LVs_embeddings) <- colnames(LVs)
+    message("Batch correction finishes.")
+
+  }#else if
+  
 
   slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
   
@@ -360,8 +370,9 @@ Horizontal.Integration.first <- function(Y.list,
                                          LVs.filter.thr = 0.8, 
                                          mod = "all", 
                                          remove.LV1 = F, 
-                                         L2.option = "L2norm", 
-                                         LV.filter = T){
+                                         L2.option = "default", 
+                                         LV.filter = T,
+                                         batch.correction = "harmony"){
   
   if ((length(Y.list) > 30) & (mod == "all")){
     message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
@@ -390,14 +401,21 @@ Horizontal.Integration.first <- function(Y.list,
   LVs <- reciprocal_concat(proj, option = L2.option)
   message("Concatenation finishes.")
 
-  #harmony
+  #batch correction
   ##########################################################
-  message("Batch correction starts.")
-  #ptm <- proc.time()
-  LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
-  #print(proc.time()-ptm)
-  rownames(LVs_embeddings) <- colnames(LVs)
-  message("Batch correction finishes.")
+  if (is.null(batch.correction)){
+
+    LVs_embeddings <- t(LVs)
+
+  }else if (batch.correction=="harmony"){
+    message("Batch correction starts.")
+    #ptm <- proc.time()
+    LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
+    #print(proc.time()-ptm)
+    rownames(LVs_embeddings) <- colnames(LVs)
+    message("Batch correction finishes.")
+    
+  }#else if
   
   slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
 

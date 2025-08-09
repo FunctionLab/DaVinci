@@ -13,8 +13,10 @@ scatter.FeaturePlot.list(
   title.size = 20,
   orientation = "xy",
   ratio = NULL,
-  return.obj = F,
-  single.obj = F
+  single.obj = F,
+  raster = F,
+  raster.dpi = 300,
+  return.obj = F
 )
 }
 \description{

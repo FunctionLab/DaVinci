@@ -12,7 +12,11 @@ scatter.DiscretePlot.list(
   pt.size = 1,
   title.size = 10,
   orientation = "xy",
-  ratio = NULL
+  ratio = NULL,
+  raster = F,
+  raster.dpi = 300,
+  return.obj = F,
+  to_highlight = NULL
 )
 }
 \description{

@@ -2,26 +2,32 @@
 impact.default <- function(reference.Z, query.gene.exp, k, L2, right.shur, thr = 0.8){
   
   left <- 2*crossprod(reference.Z)+2*L2*diag(k)
+  #left <- 2*crossprod(reference.Z)+2*L2*diag(ncol(reference.Z))
   total <- 2*t(reference.Z) %*% query.gene.exp
   
   B <- sylvester_pre(left, right.shur$U, right.shur$S, total)
   
   #L4_adaptive
   ###########################################
-  B.cor.res <- cor(t(B))
-  B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
-  #pheatmap::pheatmap(B.cor.res, display_numbers = T, fontsize = 15)
-  
-  
-  #print(sum(B.cor.val>=thr))
-  if (sum(B.cor.val>=thr)==1){
-    flag <- "Done"
-  }else if (sum(B.cor.val>=thr)>1){
-    flag <- "Shrink"
+
+  if ( min(apply(B,1,sd)) < 1e-7 ){
+      flag <- "Shrink"
   }else{
-    flag <- "Explode"
+
+      B.cor.res <- cor(t(B))
+      B.cor.val <- B.cor.res[upper.tri(B.cor.res)]
+      #pheatmap::pheatmap(B.cor.res, display_numbers = T, fontsize = 15)
+
+      #print(sum(B.cor.val>=thr))
+      if (sum(B.cor.val>=thr)==1){
+        flag <- "Done"
+      }else if (sum(B.cor.val>=thr)>1){
+        flag <- "Shrink"
+      }else{
+        flag <- "Explode"
+      }#else
+          
   }#else
-  
   
   return(list(flag = flag, B = B))  
 }#impact.default
@@ -51,7 +57,16 @@ impact_adaptive <- function(reference.Z,
                             random.seed = 123){
   pos.adj <- 3
   
-  k <- ncol(reference.Z)
+  
+  k <- ncol(reference.Z)  
+  
+  #number of spots in the tile can be smaller than the dimension
+  if ( ncol(reference.Z) > ncol(query.gene.exp) ){
+    k.svd <- ncol(query.gene.exp)
+  }else{
+    k.svd <- ncol(reference.Z)    
+  }#else
+  
   
   #no need
   if (to_drop){
@@ -79,14 +94,14 @@ impact_adaptive <- function(reference.Z,
       }#if verbose
       
       set.seed(random.seed)
-      svdres <- rsvd(query.gene.exp, k = k)
+      svdres <- rsvd(query.gene.exp, k = k.svd)
       svdres <- rotateSVD(svdres)
       
-      L1 <- svdres$d[k]*scale
+      L1 <- svdres$d[k.svd]*scale
       if (!is.null(pos.adj)){
         L1 <- L1/pos.adj
       }#if
-      L2 <- svdres$d[k]*scale
+      L2 <- svdres$d[k.svd]*scale
       
     }else{
     

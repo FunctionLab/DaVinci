@@ -682,8 +682,10 @@ scatter.FeaturePlot.list <- function(LVs,
                                     title.size = 20,
                                     orientation = "xy",
                                     ratio = NULL,
-                                    return.obj = F,
-                                    single.obj = F
+                                    single.obj = F,
+                                    raster = F,
+                                    raster.dpi = 300,
+                                    return.obj = F
                                     ){
           
 
@@ -714,7 +716,9 @@ scatter.FeaturePlot.list <- function(LVs,
                                                                 plot.all=F, 
                                                                 pt.size = pt.size, 
                                                                 ratio = NULL,
-                                                                orientation = orientation)+
+                                                                orientation = orientation,
+                                                                raster = raster,
+                                                                raster.dpi = raster.dpi)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
             
@@ -724,7 +728,9 @@ scatter.FeaturePlot.list <- function(LVs,
                                                                 plot.all=F, 
                                                                 pt.size = pt.size, 
                                                                 ratio = ratio[dataset.opts[ii]],
-                                                                orientation = orientation)+
+                                                                orientation = orientation,
+                                                                raster = raster,
+                                                                raster.dpi = raster.dpi)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
                     }#else
@@ -732,6 +738,7 @@ scatter.FeaturePlot.list <- function(LVs,
               }#for ii
 
           }#for jj
+
 
           if (return.obj){
 
@@ -773,44 +780,177 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                       pt.size = 1,
                                       title.size = 10,
                                       orientation = "xy",
-                                      ratio = NULL
+                                      ratio = NULL,
+                                      raster = F,
+                                      raster.dpi = 300,
+                                      return.obj = F,
+                                      to_highlight = NULL #NULL, "all", "1", "0",....
                                       ){
+        
+        if (length(orientation)==length(dataset.opts)){
+            orientation.opts <- orientation
+            orientation.opts <- orientation.opts[dataset.opts]
 
-#plot.all & to_highlight cannot be active
-        plot.list <- list()
+        }else if (length(orientation)==1){
+            orientation.opts <- rep(orientation, length(dataset.opts))
+        }else{
+            stop("Orientation parameter is not set correctly.")
+        }#else
 
-        for (ii in 1:length(dataset.opts)){
 
-            coor.visual <- coor.list[[ii]]
+        #visualize - cluster-by-sample
+        if (!is.null(to_highlight)){
+          
+          if (to_highlight=="all"){
 
-            
-            
-            #make sure aligned
-            pp <- cluster.label[mat.slice.id==dataset.opts[ii]]
-            partition <- pp[rownames(coor.visual)]
+              #regardless of the return.obj value
+              plot.list.all <- list()
 
-            if (is.null(ratio)){
-                plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, 
-                                                        partition, 
-                                                        pt.size = pt.size, 
-                                                        ratio = ratio, 
-                                                        orientation = orientation)+
-                                   colorPalette(unique(cluster.label), fill = F)+
-                                   ggtitle(dataset.opts[ii])+
-                                   theme(plot.title = element_text(size = title.size))
+              cluster.unique <- unique(as.character(sort(as.numeric(cluster.label))))
+              message(cluster.unique)
+
+              for (ii in 1:length(cluster.unique)){
+                  plot.list <- list()
+
+                  for (jj in 1:length(dataset.opts)){
+                      
+                      coor.visual <- coor.list[[jj]]
+                      
+                      #make sure aligned
+                      pp <- cluster.label[mat.slice.id==dataset.opts[jj]]
+                      partition <- pp[rownames(coor.visual)]
+
+                      if (is.null(ratio)){
+                        plot.list[[jj]] <- scatter.DiscretePlot(coor.visual, 
+                                                                partition, 
+                                                                pt.size = pt.size, 
+                                                                ratio = ratio, 
+                                                                orientation = orientation.opts[jj],
+                                                                raster = raster,
+                                                                raster.dpi = raster.dpi,
+                                                                to_highlight = cluster.unique[ii])+
+                                          ggtitle(dataset.opts[jj])+
+                                          theme(plot.title = element_text(size = title.size))
+                    }else{
+                        plot.list[[jj]] <- scatter.DiscretePlot(coor.visual, 
+                                                                partition, 
+                                                                pt.size = pt.size, 
+                                                                ratio = ratio[dataset.opts[jj]], 
+                                                                orientation = orientation.opts[jj],
+                                                                raster = raster,
+                                                                raster.dpi = raster.dpi,
+                                                                to_highlight = cluster.unique[ii])+
+                                          ggtitle(dataset.opts[jj])+
+                                          theme(plot.title = element_text(size = title.size))
+                    }#else
+
+                  }#for jj
+
+                  plot.list.all[[ii]] <- plot.list
+              }#for ii
+
+              names(plot.list.all) <- cluster.unique
+              return(plot.list.all)
+
+          }else{
+              #only highlight 1
+              message(to_highlight)
+
+              plot.list <- list()
+
+                  for (jj in 1:length(dataset.opts)){
+                      
+                      coor.visual <- coor.list[[jj]]
+                      
+                      #make sure aligned
+                      pp <- cluster.label[mat.slice.id==dataset.opts[jj]]
+                      partition <- pp[rownames(coor.visual)]
+
+                      if (is.null(ratio)){
+                        plot.list[[jj]] <- scatter.DiscretePlot(coor.visual, 
+                                                                partition, 
+                                                                pt.size = pt.size, 
+                                                                ratio = ratio, 
+                                                                orientation = orientation.opts[jj],
+                                                                raster = raster,
+                                                                raster.dpi = raster.dpi,
+                                                                to_highlight = to_highlight)+
+                                          ggtitle(dataset.opts[jj])+
+                                          theme(plot.title = element_text(size = title.size))
+                    }else{
+                        plot.list[[jj]] <- scatter.DiscretePlot(coor.visual, 
+                                                                partition, 
+                                                                pt.size = pt.size, 
+                                                                ratio = ratio[dataset.opts[jj]], 
+                                                                orientation = orientation.opts[jj],
+                                                                raster = raster,
+                                                                raster.dpi = raster.dpi,
+                                                                to_highlight = to_highlight)+
+                                          ggtitle(dataset.opts[jj])+
+                                          theme(plot.title = element_text(size = title.size))
+                    }#else
+
+                  }#for jj
+
+
+              if (return.obj){
+                  return(plot.list)
+              }else{
+                  ggarrange(plotlist = plot.list)
+              }#else
+
+          }#else
+          
+
+        }else{
+
+            #plot.all & to_highlight cannot be active
+            plot.list <- list()
+
+            for (ii in 1:length(dataset.opts)){
+
+                coor.visual <- coor.list[[ii]]
+
+                
+                
+                #make sure aligned
+                pp <- cluster.label[mat.slice.id==dataset.opts[ii]]
+                partition <- pp[rownames(coor.visual)]
+
+                if (is.null(ratio)){
+                    plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, 
+                                                            partition, 
+                                                            pt.size = pt.size, 
+                                                            ratio = ratio, 
+                                                            orientation = orientation.opts[ii],
+                                                            raster = raster,
+                                                            raster.dpi = raster.dpi)+
+                                      colorPalette(unique(cluster.label), fill = F)+
+                                      ggtitle(dataset.opts[ii])+
+                                      theme(plot.title = element_text(size = title.size))
+                }else{
+                    plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, 
+                                                            partition, 
+                                                            pt.size = pt.size, 
+                                                            ratio = ratio[dataset.opts[ii]], 
+                                                            orientation = orientation.opts[ii],
+                                                            raster = raster,
+                                                            raster.dpi = raster.dpi)+
+                                      colorPalette(unique(cluster.label), fill = F)+
+                                      ggtitle(dataset.opts[ii])+
+                                      theme(plot.title = element_text(size = title.size))
+                }#else
+
+            }#for ii
+
+            if (return.obj){
+              return(plot.list)
             }else{
-                plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, 
-                                                        partition, 
-                                                        pt.size = pt.size, 
-                                                        ratio = ratio[dataset.opts[ii]], orientation = orientation)+
-                                   colorPalette(unique(cluster.label), fill = F)+
-                                   ggtitle(dataset.opts[ii])+
-                                   theme(plot.title = element_text(size = title.size))
+              ggarrange(plotlist = plot.list)
             }#else
+            
+        }#else
 
-        }#for ii
-
-        ggarrange(plotlist = plot.list)
 }#scatter.DiscretePlot.list
 
 
