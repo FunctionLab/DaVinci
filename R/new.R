@@ -9,7 +9,8 @@ leiden_adaptive <- function(nn,
                             adaptive.size = 2, 
                             method = "louvain", 
                             verbose = T, 
-                            full = F){
+                            full = F,
+                            remove.singleton = NULL){
   
   #partition <- leiden::leiden(nn, resolution_parameter = resolution.start)
   if (method == "leiden"){
@@ -17,8 +18,43 @@ leiden_adaptive <- function(nn,
   }else if (method =="louvain"){
     partition <- Seurat:::RunModularityClustering(nn, resolution = resolution.start, algorithm = 1, print.output = F) 
   }#else if
-  
-  
+ 
+    #correct for singleton
+    if (!is.null(remove.singleton)){
+        
+        p.summary <- table(partition)
+
+        p.singleton <- as.numeric(names(p.summary)[p.summary<3])
+        message("Resolve singleton")
+
+        if (length(p.singleton) > 1){
+          #singleton exists
+          p.cluster <- as.numeric(names(p.summary)[p.summary>=3])
+          
+          p.cluster.center <- c()
+          #calculate the mean positions for p.cluster
+          for (ii in 1:length(p.cluster)){
+              temp.index <- which(partition==p.cluster[ii])
+              p.cluster.center <- rbind(p.cluster.center, apply(remove.singleton[temp.index,], 2, mean))
+          }#for ii
+            
+          #create a nearest neighbor index
+          prebuild.index <- BiocNeighbors::buildIndex(p.cluster.center, BNPARAM = BiocNeighbors::AnnoyParam() )
+          
+          #assign singleton based on the distance
+          p.singleton.index <- which(partition %in% p.singleton)
+          p.singleton.to_query <- remove.singleton[p.singleton.index,]
+          
+          to_query.res <- FindNN(query = p.singleton.to_query, number.of.NN = 1, prebuild.index = prebuild.index)
+          
+          partition[p.singleton.index] <- p.cluster[to_query.res$index]
+          
+        }#if 
+
+    }#if 
+
+
+
   if (length(unique(partition)) < num.of.cluster){
     reso.left <- resolution.start
     reso.right <- resolution.start*adaptive.size
@@ -67,6 +103,41 @@ leiden_adaptive <- function(nn,
           partition <- Seurat:::RunModularityClustering(nn, resolution = reso, algorithm = 1, print.output = F)  
         }#else if
         
+        #correct for singleton
+        if (!is.null(remove.singleton)){
+               p.summary <- table(partition)
+
+                p.singleton <- as.numeric(names(p.summary)[p.summary<3])
+                message("Resolve singleton")
+
+                if (length(p.singleton) > 1){
+                  #singleton exists
+                  p.cluster <- as.numeric(names(p.summary)[p.summary>=3])
+                  
+                  p.cluster.center <- c()
+                  #calculate the mean positions for p.cluster
+                  for (ii in 1:length(p.cluster)){
+                      temp.index <- which(partition==p.cluster[ii])
+                      p.cluster.center <- rbind(p.cluster.center, apply(remove.singleton[temp.index,], 2, mean))
+                  }#for ii
+                    
+                  #create a nearest neighbor index
+                  prebuild.index <- BiocNeighbors::buildIndex(p.cluster.center, BNPARAM = BiocNeighbors::AnnoyParam() )
+                  
+                  #assign singleton based on the distance
+                  p.singleton.index <- which(partition %in% p.singleton)
+                  p.singleton.to_query <- remove.singleton[p.singleton.index,]
+                  
+                  to_query.res <- FindNN(query = p.singleton.to_query, number.of.NN = 1, prebuild.index = prebuild.index)
+                  
+                  partition[p.singleton.index] <- p.cluster[to_query.res$index]
+                  
+                }#if 
+
+        }#if 
+
+
+
         if ( length(unique(partition)) < num.of.cluster){
           if (verbose){
             message("Explode")
@@ -713,7 +784,7 @@ Vertical.Integration.Assemble <- function(
     smooth = F,
     n_neighbors = 40,    #vertical integration parameters - optimized
     n_neighbors_large = 50,  #vertical integration parameters - optimized
-    L2_norm = T,  #vertical integration parameters - optimized
+    L2_norm = "column",  #vertical integration parameters - optimized
     library.size.1 = NULL,
     library.size.2 = NULL,
     library.type.1 = "rna", 
@@ -789,18 +860,38 @@ Vertical.Integration.Assemble <- function(
   #all(paste0(HI.2.res$mat.slice.id, "@", rownames(input1)) == paste0(HI.1.res$mat.slice.id, "@", rownames(input2)))
     
   if (!is.null(library.size.1)){
-      if (all(paste0(HI.2.res$mat.slice.id, "@", rownames(input1)) == names(library.size.1))){
+      if (all(paste0(HI.1.res$mat.slice.id, "@", rownames(input1)) == names(library.size.1))){
           message("Modality 1 aligned.")
       }#if
   }#if
 
   if (!is.null(library.size.2)){
-      if (all(paste0(HI.1.res$mat.slice.id, "@", rownames(input2)) == names(library.size.2))){
+      if (all(paste0(HI.2.res$mat.slice.id, "@", rownames(input2)) == names(library.size.2))){
           message("Modality 2 aligned.")
       }#if
   }#if
 
   mat.slice.id <- HI.1.res$mat.slice.id
+
+  #make sure the barcodes are unique
+  if (sum(duplicated(rownames(input1))) >0){
+    rownames(input1) <- paste0(HI.1.res$mat.slice.id, "@", rownames(input1))
+    if (sum(duplicated(rownames(input1))) ==0){
+        message("Rename modality 1 to make sure barcodes are unique.")
+    }else{
+        stop("Modality 1 barcodes are not unique.")
+    }#else
+  }#if
+
+  if (sum(duplicated(rownames(input2))) >0){
+    rownames(input2) <- paste0(HI.2.res$mat.slice.id, "@", rownames(input2))
+    if (sum(duplicated(rownames(input2))) ==0){
+        message("Rename modality 2 to make sure barcodes are unique.")
+    }else{
+        stop("Modality 2 barcodes are not unique.")
+    }#else
+  }#if
+
 
   #start the vertical integation
   ##########################
@@ -824,7 +915,11 @@ Vertical.Integration.Assemble <- function(
   rownames(mat) <- names(integration.res$weight.1)
   colnames(mat) <- names(integration.res$weight.1)
 
-  return(list(mat = mat, mat.slice.id = mat.slice.id, HI.1.res = HI.1.res, HI.2.res = HI.2.res, integration.res = integration.res))
+  return(list(mat = mat, 
+              mat.slice.id = mat.slice.id, 
+              HI.1.res = HI.1.res, 
+              HI.2.res = HI.2.res, 
+              integration.res = integration.res))
     
 }#Vertical.Integration.Assemble
 

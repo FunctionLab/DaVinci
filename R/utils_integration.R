@@ -26,14 +26,16 @@ BiModalIntegration <- function(
   n_neighbors_large = 50, 
   sigma.idx = n_neighbors, 
   snn.far.nn = T, 
-  L2norm = NULL, 
+  L2norm = "column", 
   sd.scale = 1, 
   cross.contant = 1e-4, 
   prune.SNN = 0, 
   kernel.power = 1){
   
   
-  
+  if (sum(duplicated(rownames(modal.1)))>0 | sum(duplicated(rownames(modal.2)))>0){
+      stop("The spot/bin names are not unique.")
+  }#if
   
   
   if (!requireNamespace("Seurat", quietly = TRUE)) {
@@ -82,13 +84,13 @@ BiModalIntegration <- function(
   #build up all graph
   #################################
   prebuild.index.modal.1 <- BiocNeighbors::buildIndex(modal.1, BNPARAM = BiocNeighbors::AnnoyParam() )
-  modal.1.neighbor <- FindNN(modal.1, number.of.NN = n_neighbors, prebuild.index = prebuild.index.modal.1)
-  modal.1.neighbor.large <- FindNN(modal.1, number.of.NN = n_neighbors_large, prebuild.index = prebuild.index.modal.1)
+  modal.1.neighbor <- FindNN(data = modal.1, number.of.NN = n_neighbors, prebuild.index = prebuild.index.modal.1)
+  modal.1.neighbor.large <- FindNN(data = modal.1, number.of.NN = n_neighbors_large, prebuild.index = prebuild.index.modal.1)
   
     
   prebuild.index.modal.2 <- BiocNeighbors::buildIndex(modal.2, BNPARAM = BiocNeighbors::AnnoyParam() )
-  modal.2.neighbor <- FindNN(modal.2, number.of.NN = n_neighbors, prebuild.index = prebuild.index.modal.2)
-  modal.2.neighbor.large <- FindNN(modal.2, number.of.NN = n_neighbors_large, prebuild.index = prebuild.index.modal.2)
+  modal.2.neighbor <- FindNN(data = modal.2, number.of.NN = n_neighbors, prebuild.index = prebuild.index.modal.2)
+  modal.2.neighbor.large <- FindNN(data = modal.2, number.of.NN = n_neighbors_large, prebuild.index = prebuild.index.modal.2)
   
   
   message("Calculating the modality weights")
@@ -367,7 +369,22 @@ BiModalIntegration <- function(
   
   
   
-  return(list(weight.1 = weight.1, weight.2 = weight.2, weighted.index = weighted.index, weighted.dist = weighted.dist, knn.mat = knn.mat, snn.mat = snn.mat))
+  return(list(weight.1 = weight.1, 
+              weight.2 = weight.2, 
+              weighted.index = weighted.index, 
+              weighted.dist = weighted.dist, 
+              knn.mat = knn.mat, 
+              snn.mat = snn.mat,
+              library.size.1 = library.size.1, 
+              library.size.2 = library.size.2, 
+              library.type.1 = library.type.1, 
+              library.type.2 = library.type.2, 
+              baseline.1 = baseline.1,
+              baseline.2 = baseline.2,
+              prior.1 = prior.1,
+              prior.2 = prior.2,
+              n_neighbors = n_neighbors, 
+              n_neighbors_large = n_neighbors_large))
   
 }#BiModalIntegration
 

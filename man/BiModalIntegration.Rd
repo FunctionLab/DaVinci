@@ -21,7 +21,7 @@ BiModalIntegration(
   n_neighbors_large = 50,
   sigma.idx = n_neighbors,
   snn.far.nn = T,
-  L2norm = NULL,
+  L2norm = "column",
   sd.scale = 1,
   cross.contant = 1e-04,
   prune.SNN = 0,

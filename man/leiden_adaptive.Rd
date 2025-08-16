@@ -11,7 +11,8 @@ leiden_adaptive(
   adaptive.size = 2,
   method = "louvain",
   verbose = T,
-  full = F
+  full = F,
+  remove.singleton = NULL
 )
 }
 \description{

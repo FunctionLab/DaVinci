@@ -20,7 +20,7 @@ Vertical.Integration.Assemble(
   smooth = F,
   n_neighbors = 40,
   n_neighbors_large = 50,
-  L2_norm = T,
+  L2_norm = "column",
   library.size.1 = NULL,
   library.size.2 = NULL,
   library.type.1 = "rna",
