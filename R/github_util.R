@@ -165,7 +165,16 @@ LSI_normalization <- function(atac, method = "1", scale.factor = 1e5, peak.filte
 #wrapper to combine everything
 #' Wrapper to prepare the input
 #' @export
-preprocess <- function(mat, coor, type = "rna", graph.opt = "Tri.mesh", frac.thr = 0.95, MT.remove = T, median.norm = T, LSI.method = "3",  LSI.scale.factor = 1e5, LSI.peak.filter.thr = NULL){
+preprocess <- function(mat, 
+                       coor, 
+                       type = "rna", 
+                       graph.opt = "Tri.mesh", 
+                       frac.thr = 0.95, 
+                       MT.remove = T, 
+                       median.norm = T, 
+                       LSI.method = "3",  
+                       LSI.scale.factor = 1e5, 
+                       LSI.peak.filter.thr = NULL){
 
   #make sure aligned
   if (ncol(mat)!=nrow(coor)){
@@ -179,10 +188,16 @@ preprocess <- function(mat, coor, type = "rna", graph.opt = "Tri.mesh", frac.thr
 
   #processing the mat
   ################################################
-  if (type %in% c("rna", "protein")){
+  if (type %in% c("rna", "protein", "rna_raw")){
 
     tmp <- gene_normalization(mat, frac.thr = frac.thr, MT.remove = MT.remove, median.norm = median.norm)
-    mat <- tmp$gene.exp.log
+
+    if (type=="rna_raw"){
+      mat <- tmp$gene.exp
+    }else{
+      mat <- tmp$gene.exp.log  
+    }#else
+    
 
   }else if (type=="atac"){
 

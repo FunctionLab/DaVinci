@@ -199,9 +199,10 @@ BiModalIntegration <- function(
   #################################
   #library.size.1 will be a vector
   #library.size.2 will be a vector
+  message("")
   if ( !is.null(library.size.1) & !is.null(library.size.2) ){
       
-       message("Adjust the weights by library size.")
+       print("Adjust the weights by library size.")
        
        #with internel parameters
        #calculated based on /mnt/ceph/users/wmao1/KPMP/code/PLIER_Ahmed/speed_sylvester/exhaustive/CoProfiling/MouseBrain/generate_input.R
@@ -254,9 +255,7 @@ BiModalIntegration <- function(
       weight.2 <- weight.2/deno
 
   }else{
-    
-      message("No adjustment with reference UMI.")
-
+          print("No adjustment with reference UMI.")
   }#else
 
 

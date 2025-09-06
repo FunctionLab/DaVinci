@@ -13,7 +13,8 @@ scatter.DiscretePlot(
   to_highlight = NULL,
   raster = F,
   raster.dpi = 300,
-  orientation = "xy"
+  orientation = "xy",
+  downsample = NULL
 )
 }
 \description{

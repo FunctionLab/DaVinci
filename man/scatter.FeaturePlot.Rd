@@ -17,7 +17,8 @@ scatter.FeaturePlot(
   plot.all = F,
   orientation = "xy",
   raster = F,
-  raster.dpi = 300
+  raster.dpi = 300,
+  downsample = NULL
 )
 }
 \description{

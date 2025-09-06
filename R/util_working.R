@@ -284,7 +284,8 @@ scatter.DiscretePlot <- function(coor,
                                  to_highlight = NULL,
                                  raster = F,
                                  raster.dpi = 300,
-                                 orientation = "xy"){
+                                 orientation = "xy",
+                                 downsample = NULL){
 
   cluster.label <- as.character(cluster.label)
   cluster.unique <- sort(unique(cluster.label))
@@ -323,6 +324,12 @@ scatter.DiscretePlot <- function(coor,
 
 
   dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], cluster = cluster.label)
+
+  if (!is.null(downsample)){
+      set.seed(1)
+      downsample.index <- sample(nrow(dat.plot), nrow(dat.plot)*downsample)
+      dat.plot <- dat.plot[downsample.index,]
+  }#if 
 
    if (plot.all){
 
@@ -529,7 +536,8 @@ scatter.FeaturePlot <- function(
     plot.all = F,
     orientation = "xy",
     raster = F,
-    raster.dpi = 300
+    raster.dpi = 300,
+    downsample = NULL
     ){
 
     if (gene.verbose & is.null(loading)){
@@ -576,6 +584,13 @@ scatter.FeaturePlot <- function(
     
     dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs)
 
+     if (!is.null(downsample)){
+        set.seed(1)
+        downsample.index <- sample(nrow(dat.plot), nrow(dat.plot)*downsample)
+        dat.plot <- dat.plot[downsample.index,]
+    }#if 
+    
+
     if (raster){
       p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                   ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
@@ -612,6 +627,12 @@ scatter.FeaturePlot <- function(
     for (ii in 1:nrow(LVs)){
       dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs[ii,])
 
+       if (!is.null(downsample)){
+            set.seed(1)
+            downsample.index <- sample(nrow(dat.plot), nrow(dat.plot)*downsample)
+            dat.plot <- dat.plot[downsample.index,]
+        }#if 
+
       if (raster){
         p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                  ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
@@ -641,6 +662,12 @@ scatter.FeaturePlot <- function(
     }#if
 
     dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs[LV.index,])
+     
+     if (!is.null(downsample)){
+          set.seed(1)
+          downsample.index <- sample(nrow(dat.plot), nrow(dat.plot)*downsample)
+          dat.plot <- dat.plot[downsample.index,]
+      }#if 
 
     if (raster){
         p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+
@@ -682,10 +709,11 @@ scatter.FeaturePlot.list <- function(LVs,
                                     title.size = 20,
                                     orientation = "xy",
                                     ratio = NULL,
-                                    single.obj = F,
+                                    single.obj = F, #if all LVs, all sections will be formulated as one list; if F, it will return a list of list
                                     raster = F,
                                     raster.dpi = 300,
-                                    return.obj = F
+                                    return.obj = F,
+                                    downsample = NULL
                                     ){
           
 
@@ -694,6 +722,17 @@ scatter.FeaturePlot.list <- function(LVs,
               LVs <- matrix(LVs, ncol = 1)
               rownames(LVs) <- LVs.names
           }#if
+
+
+        if (length(orientation)==length(dataset.opts)){
+            orientation.opts <- orientation
+            orientation.opts <- orientation.opts[dataset.opts]
+
+        }else if (length(orientation)==1){
+            orientation.opts <- rep(orientation, length(dataset.opts))
+        }else{
+            stop("Orientation parameter is not set correctly.")
+        }#else
 
           plot.list <- list()
           count <- 0
@@ -716,9 +755,10 @@ scatter.FeaturePlot.list <- function(LVs,
                                                                 plot.all=F, 
                                                                 pt.size = pt.size, 
                                                                 ratio = NULL,
-                                                                orientation = orientation,
+                                                                orientation = orientation.opts[ii],
                                                                 raster = raster,
-                                                                raster.dpi = raster.dpi)+
+                                                                raster.dpi = raster.dpi,
+                                                                downsample = downsample)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
             
@@ -728,9 +768,10 @@ scatter.FeaturePlot.list <- function(LVs,
                                                                 plot.all=F, 
                                                                 pt.size = pt.size, 
                                                                 ratio = ratio[dataset.opts[ii]],
-                                                                orientation = orientation,
+                                                                orientation = orientation.opts[ii],
                                                                 raster = raster,
-                                                                raster.dpi = raster.dpi)+
+                                                                raster.dpi = raster.dpi,
+                                                                downsample = downsample)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
                     }#else
@@ -784,7 +825,8 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                       raster = F,
                                       raster.dpi = 300,
                                       return.obj = F,
-                                      to_highlight = NULL #NULL, "all", "1", "0",....
+                                      to_highlight = NULL, #NULL, "all", "1", "0",....
+                                      downsample = NULL
                                       ){
         
         if (length(orientation)==length(dataset.opts)){
@@ -806,7 +848,8 @@ scatter.DiscretePlot.list <- function(cluster.label,
               #regardless of the return.obj value
               plot.list.all <- list()
 
-              cluster.unique <- unique(as.character(sort(as.numeric(cluster.label))))
+              #cluster.unique <- unique(as.character(sort(as.numeric(cluster.label))))
+              cluster.unique <- unique(sort(cluster.label))
               message(cluster.unique)
 
               for (ii in 1:length(cluster.unique)){
@@ -828,7 +871,8 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                                                 orientation = orientation.opts[jj],
                                                                 raster = raster,
                                                                 raster.dpi = raster.dpi,
-                                                                to_highlight = cluster.unique[ii])+
+                                                                to_highlight = cluster.unique[ii],
+                                                                downsample = downsample)+
                                           ggtitle(dataset.opts[jj])+
                                           theme(plot.title = element_text(size = title.size))
                     }else{
@@ -839,7 +883,8 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                                                 orientation = orientation.opts[jj],
                                                                 raster = raster,
                                                                 raster.dpi = raster.dpi,
-                                                                to_highlight = cluster.unique[ii])+
+                                                                to_highlight = cluster.unique[ii],
+                                                                downsample = downsample)+
                                           ggtitle(dataset.opts[jj])+
                                           theme(plot.title = element_text(size = title.size))
                     }#else
@@ -874,7 +919,8 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                                                 orientation = orientation.opts[jj],
                                                                 raster = raster,
                                                                 raster.dpi = raster.dpi,
-                                                                to_highlight = to_highlight)+
+                                                                to_highlight = to_highlight,
+                                                                downsample = downsample)+
                                           ggtitle(dataset.opts[jj])+
                                           theme(plot.title = element_text(size = title.size))
                     }else{
@@ -885,7 +931,8 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                                                 orientation = orientation.opts[jj],
                                                                 raster = raster,
                                                                 raster.dpi = raster.dpi,
-                                                                to_highlight = to_highlight)+
+                                                                to_highlight = to_highlight,
+                                                                downsample = downsample)+
                                           ggtitle(dataset.opts[jj])+
                                           theme(plot.title = element_text(size = title.size))
                     }#else
@@ -924,7 +971,8 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                                             ratio = ratio, 
                                                             orientation = orientation.opts[ii],
                                                             raster = raster,
-                                                            raster.dpi = raster.dpi)+
+                                                            raster.dpi = raster.dpi,
+                                                            downsample = downsample)+
                                       colorPalette(unique(cluster.label), fill = F)+
                                       ggtitle(dataset.opts[ii])+
                                       theme(plot.title = element_text(size = title.size))
@@ -935,7 +983,8 @@ scatter.DiscretePlot.list <- function(cluster.label,
                                                             ratio = ratio[dataset.opts[ii]], 
                                                             orientation = orientation.opts[ii],
                                                             raster = raster,
-                                                            raster.dpi = raster.dpi)+
+                                                            raster.dpi = raster.dpi,
+                                                            downsample = downsample)+
                                       colorPalette(unique(cluster.label), fill = F)+
                                       ggtitle(dataset.opts[ii])+
                                       theme(plot.title = element_text(size = title.size))

@@ -16,7 +16,8 @@ scatter.DiscretePlot.list(
   raster = F,
   raster.dpi = 300,
   return.obj = F,
-  to_highlight = NULL
+  to_highlight = NULL,
+  downsample = NULL
 )
 }
 \description{

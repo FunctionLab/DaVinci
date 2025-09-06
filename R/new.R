@@ -401,8 +401,18 @@ refinement <- function(y,
 
 
 
-
-refinement.batch <- function(data, coor, neighbor.option="KNN", neighbor.arg = 6, radius.arg = 10, tasks = "discrete", self = F){
+#' Smooth out by LV
+#'
+#' Smooth out by LV
+#' 
+#' @export
+refinement.batch <- function(data, 
+                             coor, 
+                             neighbor.option="KNN", 
+                             neighbor.arg = 6, 
+                             radius.arg = 10, 
+                             tasks = "discrete", 
+                             self = F){
   if (ncol(data) < nrow(data)){
     data <- t(data)
   }#if
