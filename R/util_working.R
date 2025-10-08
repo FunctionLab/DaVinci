@@ -524,21 +524,22 @@ LvPlot_fast <- function(dat, val, pt.size=2, ratio = 1, use.myratio=F, plot.all 
 #' @import ggpubr
 #' @export
 scatter.FeaturePlot <- function(
-    coor, 
-    loading=NULL, 
-    LVs, 
-    LV.index = 1, 
-    gene.verbose = F, 
-    pt.size = 2, 
-    ratio = NULL, 
-    x.offset = 1.05, 
-    font.size = 7, 
-    plot.all = F,
-    orientation = "xy",
-    raster = F,
-    raster.dpi = 300,
-    downsample = NULL
-    ){
+                                coor, 
+                                loading=NULL, 
+                                LVs, 
+                                LV.index = 1, 
+                                gene.verbose = F, 
+                                pt.size = 2, 
+                                ratio = NULL, 
+                                x.offset = 1.05, 
+                                font.size = 7, 
+                                plot.all = F,
+                                orientation = "xy",
+                                raster = F,
+                                raster.dpi = 300,
+                                downsample = NULL, #between 0 and 1, fraction of the data to be visualized
+                                percentile = c(0,1)
+                                ){
 
     if (gene.verbose & is.null(loading)){
       stop("loading can't be NULL if gene names will be printed out")
@@ -582,15 +583,23 @@ scatter.FeaturePlot <- function(
   #no gene verbose in this case
   if (is.numeric(LVs) & is.vector(LVs)){
     
-    dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs)
-
-     if (!is.null(downsample)){
+    #downsample
+    if (!is.null(downsample)){
         set.seed(1)
         downsample.index <- sample(nrow(dat.plot), nrow(dat.plot)*downsample)
         dat.plot <- dat.plot[downsample.index,]
     }#if 
     
+    #percentile thresholding
+    message(paste0("Percentile set for visualization is: ", percentile[1], " and ", percentile[2]))
+    lbd <- quantile(LVs, percentile[1])
+    ubd <- quantile(LVs, percentile[2])
+    LVs[which(LVs < lbd)] <- lbd
+    LVs[which(LVs > ubd)] <- ubd
+    
 
+    dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs)
+    
     if (raster){
       p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                   ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
@@ -614,6 +623,21 @@ scatter.FeaturePlot <- function(
     if (nrow(LVs) > ncol(LVs)){
       LVs <- t(LVs)
     }#if
+
+
+    #percentile thresholding
+    message(paste0("Percentile set for visualization is: ", percentile[1], " and ", percentile[2]))
+    for (ii in 1:nrow(LVs)){
+
+        lbd <- quantile(LVs[ii,], percentile[1])
+        ubd <- quantile(LVs[ii,], percentile[2])
+        LVs[ii, which(LVs[ii,] < lbd)] <- lbd
+        LVs[ii, which(LVs[ii,] > ubd)] <- ubd
+
+    }#for ii
+    
+
+
 
   #case 2.1: plot all rows
   if (plot.all){
@@ -686,7 +710,11 @@ scatter.FeaturePlot <- function(
     }#else
     
     if (gene.verbose){
-      p <- p+annotate("text", x = max(dat.plot$x)*x.offset , y = median(dat.plot$y), label = paste(names(sort(loading[,LV.index], decreasing = T)[1:15]), collapse = "\n"), size = font.size)
+      p <- p+annotate("text", 
+                      x = max(dat.plot$x)*x.offset , 
+                      y = median(dat.plot$y), 
+                      label = paste(names(sort(loading[,LV.index], decreasing = T)[1:15]), 
+                      collapse = "\n"), size = font.size)
     } #if
   }#else
 
@@ -694,6 +722,9 @@ scatter.FeaturePlot <- function(
   
   return(p)
 }#scatter.FeaturePlot
+
+
+
 
 
 
@@ -713,7 +744,8 @@ scatter.FeaturePlot.list <- function(LVs,
                                     raster = F,
                                     raster.dpi = 300,
                                     return.obj = F,
-                                    downsample = NULL
+                                    downsample = NULL,
+                                    percentile = c(0,1)
                                     ){
           
 
@@ -758,7 +790,8 @@ scatter.FeaturePlot.list <- function(LVs,
                                                                 orientation = orientation.opts[ii],
                                                                 raster = raster,
                                                                 raster.dpi = raster.dpi,
-                                                                downsample = downsample)+
+                                                                downsample = downsample,
+                                                                percentile = percentile)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
             
@@ -771,7 +804,8 @@ scatter.FeaturePlot.list <- function(LVs,
                                                                 orientation = orientation.opts[ii],
                                                                 raster = raster,
                                                                 raster.dpi = raster.dpi,
-                                                                downsample = downsample)+
+                                                                downsample = downsample,
+                                                                percentile = percentile)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
                     }#else

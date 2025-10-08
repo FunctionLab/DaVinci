@@ -1,9 +1,159 @@
+
+moranI_fast <- function(x, 
+                        coor, 
+                        weight = NULL){
+
+    if (is.null(weight)){
+        weight <- MERINGUE::getSpatialNeighbors(coor, 
+                                filterDist = NA,
+                                binary = T)
+    }#if
+
+    return( MERINGUE::moranTest( x, weight, alternative = "two.sided") )
+}#moranI_fast
+
+
+moranI_fast_all <- function(x, 
+                            coor, 
+                            weight = NULL){
+      
+      res <- c()
+      if (nrow(x) > ncol(x)){
+        x <- t(x)
+      }#if
+
+      if (is.null(weight)){
+        weight <- MERINGUE::getSpatialNeighbors(coor, 
+                                filterDist = NA,
+                                binary = T)
+      }#if
+
+      for (ii in 1:nrow(x)){
+        res <- rbind(res, moranI_fast(x[ii,], coor = coor, weight = weight))
+      }#for ii
+        
+      return(res)
+}#moranI_fast_all
+
+
+
+#' Calculate the moran's I
+#' @export 
+moranI <- function(x, L){
+  #recover the adj matrix from L
+  A <- -L
+  diag(A) <- 0
+
+  #calculate the moran'I
+  #https://rspatial.org/rosu/Chapter7.html
+
+  terra::autocor(x, A, method = "moran")
+}#moranI
+
+
+#' Calculate the moran's I in batch
+#' @export 
+moranI_all <- function(x, L){
+
+  res <- c()
+  if (nrow(x)>ncol(x)){
+    x <- t(x)
+  }#if
+  for (i in 1:nrow(x)){
+    res <- c(res, moranI(x[i,], L))
+  }#for i
+  return(res)
+}#moranI_all
+
+
+
 #' Calculate the ARI metric
 #' @export
 CM <- function(x,y){
   include.index <- which(!is.na(x) & !is.na(y))
   return(aricode::ARI(x[include.index], y[include.index]))
 }#CM
+
+
+
+#' Calculate the NMI metric
+#' @export
+CM.NMI <- function(x,y){
+  include.index <- which(!is.na(x) & !is.na(y))
+  return(aricode::NMI(x[include.index], y[include.index]))
+}#CM.NMI
+
+
+
+
+
+
+
+cal_metric <- function(dataset.list,
+                       gt,
+                       partition,                      
+                       mat.slice.id,
+                       metric.opt = "ARI",
+                       coor.list = NULL
+                       ){
+
+val <- c()
+slice.id <- c() 
+
+for (dataset in dataset.list){
+
+  partition.inuse <- partition[mat.slice.id==dataset]
+  gt.inuse <- gt[[dataset]][,"gt"]
+  names(gt.inuse) <- gt[[dataset]][,"sids"]
+
+  if (metric.opt == "ARI"){
+    
+      #make sure aligned
+      partition.inuse <- partition.inuse[names(gt.inuse)]
+
+    #calculate ARI
+    #table(gt.inuse, as.character(partition.inuse))
+    val <- c(val, CM(gt.inuse, as.character(partition.inuse)) )
+
+  }else if (metric.opt == "NMI"){
+    
+      #make sure aligned
+      partition.inuse <- partition.inuse[names(gt.inuse)]
+
+      val <- c(val, CM.NMI(gt.inuse, as.character(partition.inuse)) )
+
+  }else if (metric.opt == "moranI"){
+
+      #generate the Laplacian
+      coor.temp <- coor.list[[dataset]]
+
+      s.intersect <- intersect(rownames(coor.temp), names(partition.inuse))
+
+      temp <- L_generate(coor.temp[s.intersect,], opt = "Tri.mesh")
+      L <- temp$L
+
+      #not valid - needs to be continuous values
+      #val <- c(val, moranI(partition.inuse, L))
+
+  }#else if
+  
+  slice.id <- c(slice.id, dataset)
+
+}#for dataset
+
+    
+return(list(val = val,
+            slice.id  = slice.id))
+
+}#cal_metric
+
+
+
+
+
+
+
+
 
 
 
@@ -257,13 +407,29 @@ soft_threshold <- function(x, t){
 
 #' Perform fused lasso regression in batch
 #' @export 
-flr.batch <- function(data, D=NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 100, kmeans =F, verbose = F){
+flr.batch <- function(data, 
+                      D=NULL, 
+                      L, 
+                      lambda = 1e-2, 
+                      rho = 10, 
+                      tol = 1e-2, 
+                      max.iter = 100, 
+                      kmeans =F, 
+                      verbose = F){
   if (ncol(data) < nrow(data)){
     data <- t(data)
   }#if
 
   for (ii in 1:nrow(data)){
-    data[ii, ] <- flr(data[ii,], D=D, L=L, lambda = lambda, rho = rho, tol = tol, max.iter = max.iter, kmeans = kmeans, verbose = verbose)
+    data[ii, ] <- flr(data[ii,], 
+                      D=D, 
+                      L=L, 
+                      lambda = lambda, 
+                      rho = rho, 
+                      tol = tol, 
+                      max.iter = max.iter, 
+                      kmeans = kmeans, 
+                      verbose = verbose)
   }#for ii
 
   return(data)
@@ -277,7 +443,15 @@ flr.batch <- function(data, D=NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.
 #' Fused lasso regression for 2D
 #' @importFrom methods as
 #' @export 
-flr <- function(y, D = NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 100, kmeans = F, verbose = F){
+flr <- function(y, 
+                D = NULL, 
+                L, 
+                lambda = 1e-2, 
+                rho = 10, 
+                tol = 1e-2, 
+                max.iter = 100, 
+                kmeans = F, 
+                verbose = F){
 
   #construct D based on the Laplacian matrix
   ###############################################
@@ -308,11 +482,12 @@ flr <- function(y, D = NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 
   beta <- matrix(rep(0, nrow(y)), ncol = 1)
 
   if (kmeans){
-    km.res <- kmeans(y, centers = 2 ,nstart = 25)
-    beta[which(km.res$cluster==1),1] <- km.res$centers[1,]
-    beta[which(km.res$cluster==2),1] <- km.res$centers[2,]
+      km.res <- kmeans(y, centers = 2 ,nstart = 25)
+      beta[which(km.res$cluster==1),1] <- km.res$centers[1,]
+      beta[which(km.res$cluster==2),1] <- km.res$centers[2,]
   }#kmeans
 
+  #initalization
   alpha <- D%*%beta
   w <- matrix(rep(0, nrow(D)), ncol = 1)
 
@@ -337,10 +512,14 @@ flr <- function(y, D = NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 
 
   #start
   ##################
+  if (verbose){
+      message("Start:")
+  }#if verbose
+
   while( (diff >= tol)  & (iter < max.iter)){
 
     if (verbose){
-      print(diff)
+      cat(paste0("iter ", iter, ":"), diff, "\n")
     }#if
 
     beta.old <- beta
@@ -353,7 +532,8 @@ flr <- function(y, D = NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 
 
     alpha <- soft_threshold(Dbeta_w , lambda/rho)
 
-    w <- Dbeta_w-alpha
+    #add 'w+' back, 9/7/2025
+    w <- w+Dbeta_w-alpha
 
 
     #wrap up
@@ -365,41 +545,6 @@ flr <- function(y, D = NULL, L, lambda = 1e-2, rho = 10, tol = 1e-2, max.iter = 
 
   return(beta)
 }#flr
-
-
-
-
-
-
-
-#' Calculate the moran's I
-#' @export 
-moranI <- function(x, L){
-  #recover the adj matrix from L
-  A <- -L
-  diag(A) <- 0
-
-  #calculate the moran'I
-  #https://rspatial.org/rosu/Chapter7.html
-
-  terra::autocor(x, A, method = "moran")
-}#moranI
-
-
-#' Calculate the moran's I in batch
-#' @export 
-moranI_all <- function(x, L){
-
-  res <- c()
-  if (nrow(x)>ncol(x)){
-    x <- t(x)
-  }#if
-  for (i in 1:nrow(x)){
-    res <- c(res, moranI(x[i,], L))
-  }#for i
-  return(res)
-}#moranI_all
-
 
 
 

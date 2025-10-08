@@ -3,6 +3,7 @@
 export(AutoTune)
 export(BiModalIntegration)
 export(CM)
+export(CM.NMI)
 export(Cluster.Finetune.pre)
 export(ClusterMetric)
 export(ClusterPlot)

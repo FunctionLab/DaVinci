@@ -17,7 +17,8 @@ scatter.FeaturePlot.list(
   raster = F,
   raster.dpi = 300,
   return.obj = F,
-  downsample = NULL
+  downsample = NULL,
+  percentile = c(0, 1)
 )
 }
 \description{

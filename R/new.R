@@ -299,7 +299,11 @@ self_deco <- function(proj,
   #filter by correlation
   ###########################################
   
-       
+      #in case there are 0-sd ones       
+      include.index <- which(apply(LVs, 1, sd) > 1e-7)
+      LVs <- LVs[include.index,]
+
+
       #only selected the most highly correlated ones
       cor.res <- cor(t(LVs))
       
