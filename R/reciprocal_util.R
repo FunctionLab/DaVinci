@@ -336,8 +336,14 @@ Horizontal.Integration <- function(Y.list,
    ######################################################
    loading.uid <- colnames(LVs_embeddings)
    loading.ii <- as.numeric(unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[1]})))
-   loading.jj <- unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[2]}))
 
+  if (stringr::str_count(rownames(LVs)[1], "_") ==1){
+    loading.jj <- unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[2]}))
+  }else{
+    loading.jj <- unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){ paste0(x[-1], collapse = "_")}))
+  }#else
+
+   
    #extract from dav.res.list
    ##################################
    loading <- list()
@@ -348,7 +354,10 @@ Horizontal.Integration <- function(Y.list,
 
    names(loading) <- loading.uid 
 
-  return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id, loading = loading))
+  return(list(LVs = LVs, 
+              LVs_embeddings = LVs_embeddings, 
+              slice_id = slice_id, 
+              loading = loading))
   
   #LVs - the intermediate resutls after reciprocal_concat
   #LVs_embeddings - the product
@@ -446,8 +455,14 @@ Horizontal.Integration.first <- function(Y.list,
    ######################################################
    loading.uid <- colnames(LVs_embeddings)
    loading.ii <- as.numeric(unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[1]})))
-   loading.jj <- unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[2]}))
 
+   if (stringr::str_count(rownames(LVs)[1], "_") ==1){
+    loading.jj <- unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){x[2]}))
+  }else{
+    loading.jj <- unlist(lapply(strsplit(colnames(LVs_embeddings), "_"), function(x){ paste0(x[-1], collapse = "_")}))
+  }#else
+  
+    
    #extract from dav.res.list
    ##################################
    loading <- list()
@@ -458,7 +473,10 @@ Horizontal.Integration.first <- function(Y.list,
 
    names(loading) <- loading.uid 
 
-  return(list(LVs = LVs, LVs_embeddings = LVs_embeddings, slice_id = slice_id, loading = loading))
+  return(list(LVs = LVs, 
+              LVs_embeddings = LVs_embeddings, 
+              slice_id = slice_id, 
+              loading = loading))
   
   #LVs - the intermediate resutls after reciprocal_concat
   #LVs_embeddings - the product

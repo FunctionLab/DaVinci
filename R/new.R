@@ -339,7 +339,9 @@ self_deco <- function(proj,
     LVs.pair <- self_extract(proj, rownames(LVs), opt.in = "Z")
   }#else if
   
-  return(list(LVs=LVs, LVs.pair = LVs.pair, components.size = components.size))
+  return(list(LVs=LVs, 
+              LVs.pair = LVs.pair, 
+              components.size = components.size))
 }#self_deco
 
 
