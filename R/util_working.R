@@ -758,6 +758,9 @@ scatter.FeaturePlot.list <- function(LVs,
 
         if (length(orientation)==length(dataset.opts)){
             orientation.opts <- orientation
+            if (is.null(names(orientation.opts))){
+              stop("Multiple orientation should come with names.")
+            }#if
             orientation.opts <- orientation.opts[dataset.opts]
 
         }else if (length(orientation)==1){
@@ -865,6 +868,9 @@ scatter.DiscretePlot.list <- function(cluster.label,
         
         if (length(orientation)==length(dataset.opts)){
             orientation.opts <- orientation
+            if (is.null(names(orientation.opts))){
+              stop("Multiple orientation should come with names.")
+            }#if
             orientation.opts <- orientation.opts[dataset.opts]
 
         }else if (length(orientation)==1){
