@@ -12,6 +12,7 @@ leiden_adaptive <- function(nn,
                             full = F,
                             remove.singleton = NULL){
   
+  
   #partition <- leiden::leiden(nn, resolution_parameter = resolution.start)
   if (method == "leiden"){
     partition <- Seurat:::RunLeiden(nn, resolution.parameter = resolution.start, method = "matrix") 

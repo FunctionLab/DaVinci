@@ -366,7 +366,11 @@ if (!requireNamespace("Seurat", quietly = TRUE)) {
       }#else
     }#if
 
-    balanced.res <- same_size_clustering(kmeans.input, diss = F, clsize = balanced.cluster.size, algo = "nnit", method = "maxd")
+    balanced.res <- same_size_clustering(kmeans.input, 
+                                         diss = F, 
+                                         clsize = balanced.cluster.size, 
+                                         algo = "nnit", 
+                                         method = "maxd")
     partition <- balanced.res
 
   }else{

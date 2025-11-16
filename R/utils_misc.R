@@ -83,7 +83,7 @@ nnit <- function(mat,
   cpt <- 1
   while (sum(is.na(lab)) > 0) {
     lab.ii <- which(is.na(lab))
-    dmat.m <- dmat[lab.ii, lab.ii]
+    dmat.m <- dmat[lab.ii, lab.ii, drop = F]
     ii <- switch(method,
                  maxd = which.max(rowSums(dmat.m)),
                  mind = which.min(rowSums(dmat.m)),
@@ -197,6 +197,7 @@ tile_the_slice <- function(coord,
                            random.seed = 1, 
                            L2_number = 1000, 
                            tile.minimum = 3){
+  
   if (is.null(rownames(coord))){
     stop("Input doesn't have rownames.")
   }#if
@@ -209,12 +210,21 @@ tile_the_slice <- function(coord,
   #derived
   L1_number <- nrow(coord)/L1_size #number
   L2_size <- nrow(coord) %/% L2_number #balanced.cluster.size
+
+  if (L2_size < tile.minimum){
+    L2_size <- tile.minimum
+  }#if 
+
   message(paste0("Each tile includes ", L2_size, " spots."))
 
 
   #tile the slice
   #################################
-  bbox <- sf::st_bbox(c(xmin = min(coord[,1]), ymin = min(coord[,2]), xmax = max(coord[,1]), ymax = max(coord[,2]) ))
+  bbox <- sf::st_bbox(c(xmin = min(coord[,1]), 
+                        ymin = min(coord[,2]), 
+                        xmax = max(coord[,1]), 
+                        ymax = max(coord[,2]) ))
+  
   xy_ratio <- (bbox$xmax-bbox$xmin)/(bbox$ymax-bbox$ymin)
   ny <- ceiling(sqrt(L1_number/xy_ratio))
   nx <- ceiling(ny*xy_ratio)
@@ -222,14 +232,15 @@ tile_the_slice <- function(coord,
   pos <- sf::st_as_sf(as.data.frame(coord), coords = c("array_row","array_col"))
 
 
-  #adjust the tile
+  #adjust the tile: size requirement
   #################################
   point_in_grid <- sf::st_intersects(grid, pos)
   point_counts <- lengths(point_in_grid)
   exclude_index <- sort(which(point_counts < tile.minimum), decreasing = T)
   
-  if (length(exclude_index)>0){
+  while (length(exclude_index)>0){
     message("Tile is being adjusted to include enough points.")
+    
     for (cell in exclude_index){
       
       if (point_counts[cell]==0){
@@ -243,23 +254,98 @@ tile_the_slice <- function(coord,
         target_cell <- setdiff( adjacent_cells, exclude_index)[1] 
         
         if (is.na(target_cell)){
-          stop("No cell survives. Need to check carefully.")
-        }else{
-          merged_polygon <- sf::st_union(grid[c(cell, target_cell)])
-          grid[target_cell] <- merged_polygon
-          grid <- grid[-cell]
-        }#else
+          
+          message("No cell survives. Need to consider 2nd level neighbors.")
+          
+          new_adjacent_cells <- c()
+          for (ii in 1:length(adjacent_cells)){
+            new_adjacent_cells <- c(new_adjacent_cells, adjacency_matrix[[adjacent_cells[ii]]])
+          }#for ii
+          
+          target_cell <- setdiff(unique(new_adjacent_cells), exclude_index)[1]
+        }#if 
+        
+        
+        #merged step
+        merged_polygon <- sf::st_union(grid[c(cell, target_cell)])
+        grid[target_cell] <- merged_polygon
+        grid <- grid[-cell]
+        
       }#else
       
     }#for cell
+
+    point_in_grid <- sf::st_intersects(grid, pos)
+    point_counts <- lengths(point_in_grid)
+    exclude_index <- sort(which(point_counts < tile.minimum), decreasing = T)
     
-  }#if
+  }#while length(exclude_index)>0
   
   #validation
-  #point_in_grid <- sf::st_intersects(grid, pos)
-  #point_counts <- lengths(point_in_grid)
   #table(point_counts)
   
+  #adjust the tile: avoid colinearity
+  #################################
+  collinearity.index <- c()
+
+  for (ii in 1:length(point_in_grid)){
+
+    num.x <- length(unique(coord[point_in_grid[[ii]],1]))
+    num.y <- length(unique(coord[point_in_grid[[ii]],2]))
+    if ( (num.x==1) | (num.y==1) ){
+        collinearity.index <- c(collinearity.index, ii)
+    }#if 
+  }#for ii
+
+
+  while ( length(collinearity.index)>0 ){
+    
+    message("Tile is being adjusted to remove collinearity.")
+
+    for (cell in collinearity.index){
+
+        adjacency_matrix <- sf::st_touches(grid)
+        adjacent_cells <- adjacency_matrix[[cell]]
+        
+        #merge with the first cell
+        target_cell <- setdiff( adjacent_cells, exclude_index)[1] 
+        
+        if (is.na(target_cell)){
+          
+          message("No cell survives. Need to consider 2nd level neighbors.")
+          
+          new_adjacent_cells <- c()
+          for (ii in 1:length(adjacent_cells)){
+            new_adjacent_cells <- c(new_adjacent_cells, adjacency_matrix[[adjacent_cells[ii]]])
+          }#for ii
+          
+          target_cell <- setdiff(unique(new_adjacent_cells), exclude_index)[1]
+        }#if 
+                
+        #merged step
+        merged_polygon <- sf::st_union(grid[c(cell, target_cell)])
+        grid[target_cell] <- merged_polygon
+        grid <- grid[-cell]
+        
+    }#for cell
+
+    point_in_grid <- sf::st_intersects(grid, pos)
+
+    collinearity.index <- c()
+    for (ii in 1:length(point_in_grid)){
+
+      num.x <- length(unique(coord[point_in_grid[[ii]],1]))
+      num.y <- length(unique(coord[point_in_grid[[ii]],2]))
+      if ( (num.x==1) | (num.y==1) ){
+          collinearity.index <- c(collinearity.index, ii)
+      }#if 
+    }#for ii
+
+  }#while
+
+
+
+
   #calculate the L1 label
   #################################
   ids_L1 <- unlist(lapply(sf::st_intersects(pos, grid), function(sublist) sublist[1]))
@@ -276,7 +362,12 @@ tile_the_slice <- function(coord,
     if (length(temp)<L2_size){
       ids_L2[temp] <- 1
     }else{
-      ids_L2[temp] <- swk(coord[temp,], method = "balanced", L2norm = F, balanced.cluster.size = L2_size, random.seed = random.seed, verbose = F)
+      ids_L2[temp] <- swk(coord[temp,], 
+                          method = "balanced", 
+                          L2norm = F, 
+                          balanced.cluster.size = L2_size, 
+                          random.seed = random.seed, 
+                          verbose = F)
     }#else
 
   }#for ii

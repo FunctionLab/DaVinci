@@ -582,13 +582,7 @@ scatter.FeaturePlot <- function(
   #case 1: single vector
   #no gene verbose in this case
   if (is.numeric(LVs) & is.vector(LVs)){
-    
-    #downsample
-    if (!is.null(downsample)){
-        set.seed(1)
-        downsample.index <- sample(nrow(dat.plot), nrow(dat.plot)*downsample)
-        dat.plot <- dat.plot[downsample.index,]
-    }#if 
+
     
     #percentile thresholding
     message(paste0("Percentile set for visualization is: ", percentile[1], " and ", percentile[2]))
@@ -599,6 +593,14 @@ scatter.FeaturePlot <- function(
     
 
     dat.plot <- data.frame(x= coor.visual[,1], y = coor.visual[,2], val = LVs)
+    
+        
+    #downsample
+    if (!is.null(downsample)){
+        set.seed(1)
+        downsample.index <- sample(nrow(dat.plot), nrow(dat.plot)*downsample)
+        dat.plot <- dat.plot[downsample.index,]
+    }#if 
     
     if (raster){
       p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
@@ -879,6 +881,14 @@ scatter.DiscretePlot.list <- function(cluster.label,
             stop("Orientation parameter is not set correctly.")
         }#else
 
+        if (is.null(names(coor.list))){
+            stop("coor.list should be named.")
+        }else{
+          if (!all(names(coor.list)==dataset.opts)){
+            stop("coor.list and dataset.opts don't align.")
+          }#if
+        }#else
+
 
         #visualize - cluster-by-sample
         if (!is.null(to_highlight)){
@@ -901,7 +911,10 @@ scatter.DiscretePlot.list <- function(cluster.label,
                       
                       #make sure aligned
                       pp <- cluster.label[mat.slice.id==dataset.opts[jj]]
-                      partition <- pp[rownames(coor.visual)]
+                      ss <- intersect(rownames(coor.visual), names(pp))
+                      coor.visual <- coor.visual[ss,]
+                      partition <- pp[ss]
+                      #partition <- pp[rownames(coor.visual)]
 
                       if (is.null(ratio)){
                         plot.list[[jj]] <- scatter.DiscretePlot(coor.visual, 
@@ -949,7 +962,11 @@ scatter.DiscretePlot.list <- function(cluster.label,
                       
                       #make sure aligned
                       pp <- cluster.label[mat.slice.id==dataset.opts[jj]]
-                      partition <- pp[rownames(coor.visual)]
+                      ss <- intersect(rownames(coor.visual), names(pp))
+                      coor.visual <- coor.visual[ss,]
+                      partition <- pp[ss]
+                      #partition <- pp[rownames(coor.visual)]
+
 
                       if (is.null(ratio)){
                         plot.list[[jj]] <- scatter.DiscretePlot(coor.visual, 
@@ -997,12 +1014,15 @@ scatter.DiscretePlot.list <- function(cluster.label,
             for (ii in 1:length(dataset.opts)){
 
                 coor.visual <- coor.list[[ii]]
-
-                
                 
                 #make sure aligned
                 pp <- cluster.label[mat.slice.id==dataset.opts[ii]]
-                partition <- pp[rownames(coor.visual)]
+                ss <- intersect(rownames(coor.visual), names(pp))
+                coor.visual <- coor.visual[ss,]
+                partition <- pp[ss]
+                #partition <- pp[rownames(coor.visual)]
+
+
 
                 if (is.null(ratio)){
                     plot.list[[ii]] <- scatter.DiscretePlot(coor.visual, 
