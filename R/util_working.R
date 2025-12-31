@@ -109,24 +109,149 @@ unicode.convert <- function(x){
          "20" = "\u2473")
 }#unicode.convert
 
+
+
+
+
+
+
+
+
+
+#41 colors
+palBrewerPlus <- function() {
+  c(
+    # first 12 colours generated with:
+    # RColorBrewer::brewer.pal(n = 12, name = "Paired")
+    "#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C",
+    "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A", "#FFFF99", "#B15928",
+    # vivid interlude
+    "#1ff8ff", # a bright blue
+    # "#FDFF00", # lemon (clashes with #FFFF99 on some screens)
+    # "#00FF00", # lime (indistinguishable from bright blue on some screens)
+    # next 8 colours generated with:
+    # RColorBrewer::brewer.pal(n = 8, "Dark2")
+    "#1B9E77", "#D95F02", "#7570B3", "#E7298A",
+    "#66A61E", "#E6AB02", "#A6761D", "#666666",
+    # list below generated with iwanthue: all colours soft kmeans 20
+    # with a couple of arbitrary tweaks by me
+    "#4b6a53",
+    "#b249d5",
+    "#7edc45",
+    "#5c47b8",
+    "#cfd251",
+    "#ff69b4", # hotpink
+    "#69c86c",
+    "#cd3e50",
+    "#83d5af",
+    "#da6130",
+    "#5e79b2",
+    "#c29545",
+    "#532a5a",
+    "#5f7b35",
+    "#c497cf",
+    "#773a27",
+    "#7cb9cb",
+    "#594e50",
+    "#d3c4a8",
+    "#c17e7f"
+  )
+}#palBrewerPlus
+
+
+#20 colors
+palKelly <- function() {
+  c(
+    # "#f2f3f4", "#222222", # white and black removed
+    "#f3c300", "#875692", "#f38400", "#a1caf1", "#be0032", "#c2b280",
+    "#848482", "#008856", "#e68fac", "#0067a5", "#f99379", "#604e97",
+    "#f6a600", "#b3446c", "#dcd300", "#882d17", "#8db600", "#654522",
+    "#e25822", "#2b3d26"
+  )
+}#palKelly
+
+
+#25 colors
+palGreenArmytage <- function() {
+  c(
+    "#F0A3FF", "#0075DC", "#993F00", "#4C005C", # "#191919", # black removed
+    "#005C31", "#2BCE48", "#FFCC99", "#808080", "#94FFB5", "#8F7C00",
+    "#9DCC00", "#C20088", "#003380", "#19A405", "#FFA8BB", "#426600",
+    "#FF0010", "#5EF1F2", "#00998F", "#E0FF66", "#100AFF", "#990000",
+    "#FFFF80", "#FFE100", "#FF5000"
+  )
+}#palGreenArmytage
+
+
+
+
+distinct_palette <- function(n = NA, 
+                             pal = "brewerPlus", 
+                             add = NA
+                             #add = "lightgrey"
+                             ) {
+  stopifnot(rlang::is_string(pal))
+  stopifnot(rlang::is_scalar_integerish(n) || identical(n, NA))
+  stopifnot(rlang::is_na(add) || is.character(add) || is.numeric(add))
+
+  # define valid palettes matched to retrieval functions
+  palList <- list(
+    brewerPlus = palBrewerPlus,
+    kelly = palKelly,
+    greenArmytage = palGreenArmytage
+  )
+
+  # match palette request
+  pal <- rlang::arg_match0(arg = pal, values = names(palList))
+
+  # get full palette
+  palFun <- palList[[pal]]
+  palCols <- palFun()
+
+  # get n colors
+  if (!rlang::is_na(n)) {
+    if (n > length(palCols)) {
+      stop("Palette '", pal, "' has ", length(palCols), " colors, not ", n)
+    }
+    palCols <- palCols[seq_len(n)]
+  }
+
+  # add last colour e.g. lightgrey default if requested
+  if (!identical(add, NA)) {
+    grDevices::col2rgb(add)
+    palCols <- c(palCols, add)
+  }
+  return(palCols)
+}#distinct_palette
+
+
+
 #scCustomize
-
-
-
 #https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
 #' Return the color palette given cluster vector
 #' @export
-colorPalette <- function(partition, fill = T, raw = F){
+colorPalette <- function(partition, 
+                         fill = T, 
+                         raw = F){
   num.of.clusters <- length(unique(partition))
   #val.names <- sort(as.character(1:num.of.clusters))
 
-  if (num.of.clusters <=8){
+  if (num.of.clusters <= 8){
     #ColorBlind_Pal()
     values <- ggthemes::colorblind_pal()(num.of.clusters)
-  }else if (num.of.clusters <=36){
+
+  }else if (num.of.clusters <= 16){
+    values <- distinct_palette(num.of.clusters)
+    
+  }else if (num.of.clusters <= 36){
     values <- Polychrome::palette36.colors()[1:num.of.clusters]
+
+  }else if (num.of.clusters <= 41){
+    values <- distinct_palette(num.of.clusters)
+
   }else{
     values <- scales::hue_pal()(num.of.clusters)
+    
   }#else
 
   #names(values) <- val.names
@@ -142,8 +267,7 @@ colorPalette <- function(partition, fill = T, raw = F){
       return(ggplot2::scale_color_manual(values = values))
     }#else
   
-  }#else
-  
+  }#else  
 
 }#colorPalette
 
@@ -538,7 +662,8 @@ scatter.FeaturePlot <- function(
                                 raster = F,
                                 raster.dpi = 300,
                                 downsample = NULL, #between 0 and 1, fraction of the data to be visualized
-                                percentile = c(0,1)
+                                percentile = c(0,1),
+                                limits = NULL
                                 ){
 
     if (gene.verbose & is.null(loading)){
@@ -606,12 +731,16 @@ scatter.FeaturePlot <- function(
       p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                   ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
                   theme_void()+
-                  paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
+                  paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", 
+                                                    direction = -1,
+                                                    limits = limits)
     }else{
       p <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                   geom_point(size = pt.size)+
                   theme_void()+
-                  paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)
+                  paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", 
+                                                    direction = -1,
+                                                    limits = limits)
     }#else
     
     
@@ -663,14 +792,18 @@ scatter.FeaturePlot <- function(
         p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                  ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
                  theme_void()+
-                 paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
+                 paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", 
+                                                    direction = -1,
+                                                    limits = limits)+
                  ggtitle(rownames(LVs)[ii])+
                  ggplot2::theme(aspect.ratio = ratio)
       }else{
         p[[ii]] <- ggplot2::ggplot(dat.plot, aes(x=x,y = y, col = val))+
                  geom_point(size = pt.size)+
                  theme_void()+
-                 paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
+                 paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", 
+                                                    direction = -1,
+                                                    limits = limits)+
                  ggtitle(rownames(LVs)[ii])+
                  ggplot2::theme(aspect.ratio = ratio)
       }#else
@@ -699,14 +832,18 @@ scatter.FeaturePlot <- function(
         p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+
               ggrastr::geom_point_rast(size = pt.size, raster.dpi = raster.dpi)+
               theme_void()+
-              paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
+              paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", 
+                                                 direction = -1,
+                                                 limits = limits)+
               ggtitle(rownames(LVs)[LV.index])+
               ggplot2::theme(aspect.ratio = ratio)
     }else{
         p <- ggplot(dat.plot, aes(x=x,y = y, col = val))+
               geom_point(size = pt.size)+
               theme_void()+
-              paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", direction = -1)+
+              paletteer::scale_color_paletteer_c("ggthemes::Orange-Blue Diverging", 
+                                                 direction = -1,
+                                                 limits = limits)+
               ggtitle(rownames(LVs)[LV.index])+
               ggplot2::theme(aspect.ratio = ratio)
     }#else
@@ -747,7 +884,8 @@ scatter.FeaturePlot.list <- function(LVs,
                                     raster.dpi = 300,
                                     return.obj = F,
                                     downsample = NULL,
-                                    percentile = c(0,1)
+                                    percentile = c(0,1),
+                                    limits = NULL
                                     ){
           
 
@@ -796,7 +934,8 @@ scatter.FeaturePlot.list <- function(LVs,
                                                                 raster = raster,
                                                                 raster.dpi = raster.dpi,
                                                                 downsample = downsample,
-                                                                percentile = percentile)+
+                                                                percentile = percentile,
+                                                                limits = limits)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
             
@@ -810,7 +949,8 @@ scatter.FeaturePlot.list <- function(LVs,
                                                                 raster = raster,
                                                                 raster.dpi = raster.dpi,
                                                                 downsample = downsample,
-                                                                percentile = percentile)+
+                                                                percentile = percentile,
+                                                                limits = limits)+
                                           ggtitle(paste0(dataset.opts[ii], " ", colnames(LVs)[jj]))+
                                           theme(plot.title = element_text(size = title.size))
                     }#else

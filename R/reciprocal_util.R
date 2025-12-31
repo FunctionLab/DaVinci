@@ -167,7 +167,9 @@ reciprocal_concat <- function(proj, option = "L2norm"){
 #construct the B.list and global LVs with different options
 #' Finalize the integration by filtering out duplicated LVs based on similarity and strategy
 #' @export
-reciprocal_deco <- function(LVs, LVs.filter.thr = 0.9, mod = "all"){
+reciprocal_deco <- function(LVs, 
+                            LVs.filter.thr = 0.9, 
+                            mod = "all"){
     
   #filter by correlation
   ###########################################
@@ -176,7 +178,6 @@ reciprocal_deco <- function(LVs, LVs.filter.thr = 0.9, mod = "all"){
     if (mod == "all"){
       
       #use as many LVs < LVs.filter.thr as possible to generate the final LVs in use
-      
       cor.res <- cor(t(LVs))
       
       diag(cor.res) <- 0
@@ -433,12 +434,16 @@ Horizontal.Integration.first <- function(Y.list,
   #Deco
   ##########################################################
   message("Select the principal axis.")
+  
   if (LV.filter){
     #ptm <- proc.time()
-    LVs_embeddings <- reciprocal_deco(t(LVs_embeddings), LVs.filter.thr = LVs.filter.thr, mod = mod)
+    LVs_embeddings <- reciprocal_deco(t(LVs_embeddings), 
+                                      LVs.filter.thr = LVs.filter.thr, 
+                                      mod = mod)
     #print(proc.time()-ptm)
     LVs_embeddings <- t(LVs_embeddings)
   }#if LV.filter
+
   message("Selection finishes.")
   
     

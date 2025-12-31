@@ -237,7 +237,11 @@ preprocess <- function(mat,
 #' @import tripack
 #' @import ggpubr
 #' @export
-L_generate <- function(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL){
+L_generate <- function(coor, 
+                       opt = "grid", 
+                       dist.thr = 2, 
+                       num.of.neighbor = NULL,
+                       verbose = F){
 
   if (is.null(rownames(coor))){
     stop("Coor should have unique row names")
@@ -248,7 +252,9 @@ L_generate <- function(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL)
   if (!opt %in% c("grid", "Tri.mesh", "nearest.neighbor")){
     stop("Opt is not valid")
   }else if (opt == "grid"){
-    message(paste0("Your distance cutff is ", dist.thr))
+    if (verbose){
+      message(paste0("Your distance cutff is ", dist.thr))
+    }#if verbose
   }#opt
 
 
@@ -326,7 +332,10 @@ L_generate <- function(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL)
   dat.point <- data.frame(x = coor[,"array_row"], y=coor[,"array_col"])
   dat.edge <- data.frame(x=x,y=y, xend = x.end, yend = y.end)
 
-  L.visual <- ggplot()+geom_point(data = dat.point, aes(x=x, y=y))+geom_segment(data = dat.edge, aes(x=x,y=y, xend =xend, yend = yend))+theme_pubclean()
+  L.visual <- ggplot()+
+              geom_point(data = dat.point, aes(x=x, y=y))+
+              geom_segment(data = dat.edge, aes(x=x,y=y, xend =xend, yend = yend))+
+              theme_pubclean()
   return(list(L = L, L.visual = L.visual))
 }#L_generate
 

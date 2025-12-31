@@ -427,7 +427,10 @@ manifoldDecomp.scalable <- function(gene.exp, coor, L2_number = 4000, k.arg = 20
     message( paste0("L2_number is reset to ", L2_number, " to fulfill the rank requirement."))
   }#if
 
-  grid_ids <- tile_the_slice(coor, random.seed = 1, L2_number = L2_number, tile.minimum = k.arg+1)
+  grid_ids <- tile_the_slice(coor, 
+                             random.seed = 1, 
+                             L2_number = L2_number, 
+                             tile.minimum = k.arg+1)
   message("Tiling finishes.")
   
   #mean aggregation per tile

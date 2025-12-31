@@ -4,7 +4,13 @@
 \alias{L_generate}
 \title{Generate the Laplacian input}
 \usage{
-L_generate(coor, opt = "grid", dist.thr = 2, num.of.neighbor = NULL)
+L_generate(
+  coor,
+  opt = "grid",
+  dist.thr = 2,
+  num.of.neighbor = NULL,
+  verbose = F
+)
 }
 \description{
 Generate the Laplacian input
