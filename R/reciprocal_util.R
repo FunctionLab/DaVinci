@@ -262,7 +262,7 @@ reciprocal_deco <- function(LVs,
 #' @export
 Horizontal.Integration <- function(Y.list, 
                                    L.list, 
-                                   coor.list, 
+                                   coor.list = NULL, #can be removed
                                    dav.res.list = NULL, 
                                    k.args = rep(12, length(Y.list)), 
                                    LVs.filter.thr = 0.8, 
@@ -270,7 +270,8 @@ Horizontal.Integration <- function(Y.list,
                                    remove.LV1 = F, 
                                    L2.option = "default", 
                                    LV.filter = T,
-                                   batch.correction = "harmony"){
+                                   batch.correction = "harmony" #NULL, harmony, combat
+                                   ){
   
   if ((length(Y.list) > 30) & (mod == "all")){
     message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
@@ -328,7 +329,16 @@ Horizontal.Integration <- function(Y.list,
     rownames(LVs_embeddings) <- colnames(LVs)
     message("Batch correction finishes.")
 
-  }#else if
+  }else if (batch.correction == "combat"){
+    message("Batch correction starts.")
+    LVs_embeddings <- sva::ComBat(LVs, 
+                                  unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]}))
+                                  )
+    LVs_embeddings <- t(LVs_embeddings)
+    rownames(LVs_embeddings) <- colnames(LVs)
+    message("Batch correction finishes.")
+
+  }#else if 
   
 
   slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
@@ -374,7 +384,7 @@ Horizontal.Integration <- function(Y.list,
 # instead of filtering LVs first and then running harmony
 Horizontal.Integration.first <- function(Y.list, 
                                          L.list, 
-                                         coor.list, 
+                                         coor.list = NULL, #can be removed
                                          dav.res.list = NULL, 
                                          k.args = rep(12, length(Y.list)), 
                                          LVs.filter.thr = 0.8, 
@@ -382,7 +392,8 @@ Horizontal.Integration.first <- function(Y.list,
                                          remove.LV1 = F, 
                                          L2.option = "default", 
                                          LV.filter = T,
-                                         batch.correction = "harmony"){
+                                         batch.correction = "harmony" #NULL, harmony, combat
+                                         ){
   
   if ((length(Y.list) > 30) & (mod == "all")){
     message("There are more than 30 slices. 'mod' is recommended to be set as 'common'")
@@ -417,16 +428,30 @@ Horizontal.Integration.first <- function(Y.list,
 
     LVs_embeddings <- t(LVs)
 
-  }else if (batch.correction=="harmony"){
+  }else if (batch.correction == "harmony"){
     message("Batch correction starts.")
     #ptm <- proc.time()
-    LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), do_pca = F, verbose = F, max.iter.harmony = 30)
+    LVs_embeddings <- harmony::HarmonyMatrix(t(LVs), 
+                                             unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]})), 
+                                             do_pca = F, 
+                                             verbose = F, 
+                                             max.iter.harmony = 30)
     #print(proc.time()-ptm)
     rownames(LVs_embeddings) <- colnames(LVs)
     message("Batch correction finishes.")
     
-  }#else if
+  }else if (batch.correction == "combat"){
+    message("Batch correction starts.")
+    LVs_embeddings <- sva::ComBat(LVs, 
+                                  unlist(lapply(strsplit(colnames(LVs), "_"), function(x){x[[1]]}))
+                                  )
+    LVs_embeddings <- t(LVs_embeddings)
+    rownames(LVs_embeddings) <- colnames(LVs)
+    message("Batch correction finishes.")
+
+  }#else if 
   
+
   slice_id <- unlist(lapply(strsplit(rownames(LVs_embeddings), "_"), function(x){x[1]}))
 
 
