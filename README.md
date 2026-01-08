@@ -31,4 +31,4 @@
 
 ## Tutorials
 
-We provide step-by-step tutorials for applying DaVinci to a variety of spatial omics datasets. Detailed documentation will be uploaded soon!
+We provide step-by-step tutorials for applying DaVinci to a variety of spatial omics datasets. Detailed documentation is available [here](https://functionlab.github.io/DaVinci-docs/).
