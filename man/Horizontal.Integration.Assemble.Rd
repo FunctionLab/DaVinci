@@ -15,7 +15,7 @@ Horizontal.Integration.Assemble(
   h.opt = "first",
   mod.opt = "all",
   L2.in = "default",
-  random.seed = 1,
+  random.seed = 123,
   smooth = F
 )
 }

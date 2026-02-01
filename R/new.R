@@ -614,7 +614,7 @@ Horizontal.Integration.Assemble <- function(
     h.opt = "first",   #default, first
     mod.opt = "all",   #all, common
     L2.in = "default", #default, L2norm, L2norm.joint
-    random.seed = 1,
+    random.seed = 123,
     smooth = F
     ){
 
@@ -643,9 +643,28 @@ Horizontal.Integration.Assemble <- function(
       message("Working on k=", k.arg)
       
       if (is.null(s0)){
-        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, verbose = F, random.seed = random.seed)  
+
+        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], 
+                                            L.list[[ii]], 
+                                            k = k.arg, 
+                                            L4 = L4.arg, 
+                                            L4_adaptive = 2, 
+                                            to_drop = T, 
+                                            save.complete = T,
+                                            verbose = F, 
+                                            random.seed = random.seed)  
       }else{
-        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], L.list[[ii]], k = k.arg, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = s0, verbose = F, random.seed = random.seed)  
+
+        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], 
+                                            L.list[[ii]], 
+                                            k = k.arg, 
+                                            L4 = L4.arg, 
+                                            L4_adaptive = 2, 
+                                            to_drop = T, 
+                                            save.complete = T, 
+                                            shur0 = s0, 
+                                            verbose = F, 
+                                            random.seed = random.seed)  
       }#else
       
       #saveRDS(ICAp.res, file = paste0(output.folder, "/", save.label, "@", normalize.version, "@k=", k.arg,".RDS") )
@@ -680,11 +699,16 @@ Horizontal.Integration.Assemble <- function(
       }#for ii
       
   }else{
+    
     #self contrastive learning
     #############################
     embed.list <- list()
     for (ii in 1:length(exhaustive.list)){
-      embed.list[[ii]] <- self_deco(exhaustive.list[[ii]], LVs.filter.thr = 0.9, freq = 1, opt = "B")
+
+      embed.list[[ii]] <- self_deco(exhaustive.list[[ii]], 
+                                    LVs.filter.thr = 0.9, 
+                                    freq = 1, 
+                                    opt = "B")
     }#for ii
     
 
@@ -694,7 +718,17 @@ Horizontal.Integration.Assemble <- function(
     embed.list.finetune <- list()
     for (ii in 1:length(embed.list)){
       
-      embed.list.finetune[[ii]] <- manifoldDecomp_adaptive( Y.list[[ii]], L.list[[ii]], k = nrow(embed.list[[ii]]$LVs), B = embed.list[[ii]]$LVs, L4 = L4.arg, L4_adaptive = 2, to_drop = T, save.complete = T, shur0 = exhaustive.list[[ii]][[1]]$shur0, verbose = F, random.seed = random.seed)
+      embed.list.finetune[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], 
+                            L.list[[ii]], 
+                            k = nrow(embed.list[[ii]]$LVs), 
+                            B = embed.list[[ii]]$LVs, 
+                            L4 = L4.arg, 
+                            L4_adaptive = 2, 
+                            to_drop = T, 
+                            save.complete = T, 
+                            shur0 = exhaustive.list[[ii]][[1]]$shur0, 
+                            verbose = F, 
+                            random.seed = random.seed)
             
     }#for ii
 
@@ -707,7 +741,12 @@ Horizontal.Integration.Assemble <- function(
       
       ICAp.res <- embed.list.finetune[[ii]]
       #construct the pseudo ICAp.res objects
-      tmp <- list(Z = t(embed$LVs.pair), B = embed$LVs, L4 = ICAp.res$L4, shur0 = ICAp.res$shur0, L1 = ICAp.res$L1, L2 = ICAp.res$L2)
+      tmp <- list(Z = t(embed$LVs.pair), 
+                  B = embed$LVs, 
+                  L4 = ICAp.res$L4, 
+                  shur0 = ICAp.res$shur0, 
+                  L1 = ICAp.res$L1, 
+                  L2 = ICAp.res$L2)
       #cor.res <- cor(t(embed$LVs), t(ICAp.res$B))
       
       dav.res.list[[ii]] <- tmp
@@ -729,7 +768,15 @@ Horizontal.Integration.Assemble <- function(
       mat <- as.matrix(mat)
       mat.slice.id <- rep(dataset.opts[1], nrow(mat))
       #no integration.res
-      return(list(Y.list = Y.list, coor.list = coor.list, L.list = L.list, embed.list = embed.list, embed.list.finetune = embed.list.finetune, dataset.opts = dataset.opts, mat.slice.id = mat.slice.id, mat = mat))
+      return(list(Y.list = Y.list, 
+                  coor.list = coor.list, 
+                  L.list = L.list, 
+                  embed.list = embed.list, 
+                  embed.list.finetune = embed.list.finetune, 
+                  dataset.opts = dataset.opts, 
+                  mat.slice.id = mat.slice.id, 
+                  mat = mat,
+                  exhaustive.list = exhaustive.list))
 
   }else{
     #Horizontal integration
@@ -737,11 +784,25 @@ Horizontal.Integration.Assemble <- function(
 
     if (h.opt == "default"){
     
-      integration.res <- Horizontal.Integration(Y.list, L.list, coor.list, dav.res.list = dav.res.list, LVs.filter.thr = 0.8, mod = mod.opt, remove.LV1 = F, L2.option = L2.in)
+      integration.res <- Horizontal.Integration(Y.list, 
+                                                L.list, 
+                                                coor.list, 
+                                                dav.res.list = dav.res.list, 
+                                                LVs.filter.thr = 0.8, 
+                                                mod = mod.opt, 
+                                                remove.LV1 = F, 
+                                                L2.option = L2.in)
       
     }else if (h.opt == "first"){
           
-      integration.res <- Horizontal.Integration.first(Y.list, L.list, coor.list, dav.res.list = dav.res.list, LVs.filter.thr = 0.8, mod = mod.opt, remove.LV1 = F, L2.option = L2.in)
+      integration.res <- Horizontal.Integration.first(Y.list, 
+                                                      L.list, 
+                                                      coor.list, 
+                                                      dav.res.list = dav.res.list, 
+                                                      LVs.filter.thr = 0.8, 
+                                                      mod = mod.opt, 
+                                                      remove.LV1 = F, 
+                                                      L2.option = L2.in)
       
     }#else
     
@@ -762,7 +823,16 @@ Horizontal.Integration.Assemble <- function(
     #smoothing first no matter used or not
     #########################################################
     if (!smooth){
-        return(list(Y.list = Y.list, coor.list = coor.list, L.list = L.list, embed.list = embed.list, embed.list.finetune = embed.list.finetune, dataset.opts = dataset.opts, mat.slice.id = mat.slice.id, integration.res = integration.res, mat = mat))
+        return(list(Y.list = Y.list, 
+                    coor.list = coor.list, 
+                    L.list = L.list, 
+                    embed.list = embed.list, 
+                    embed.list.finetune = embed.list.finetune, 
+                    dataset.opts = dataset.opts, 
+                    mat.slice.id = mat.slice.id, 
+                    integration.res = integration.res, 
+                    mat = mat,
+                    exhaustive.list = exhaustive.list))
     }else{
       mat.smooth <- mat
 
@@ -772,20 +842,32 @@ Horizontal.Integration.Assemble <- function(
       subpart.index <- which(mat.slice.id==dataset.opts[ii])
       
       subpart <- mat[subpart.index,]
-      subpart.smooth <- refinement.batch(subpart, as.matrix(coor.list[[ii]])[rownames(subpart),], neighbor.option = "KNN", neighbor.arg = 8, tasks = "continuous")
+      subpart.smooth <- refinement.batch(subpart, 
+                                         as.matrix(coor.list[[ii]])[rownames(subpart),], 
+                                         neighbor.option = "KNN", 
+                                         neighbor.arg = 8, 
+                                         tasks = "continuous")
       
       mat.smooth[subpart.index,] <- (subpart+t(subpart.smooth))/2
       
     }#for ii
     
-      return(list(Y.list = Y.list, coor.list = coor.list, L.list = L.list, embed.list = embed.list, embed.list.finetune = embed.list.finetune, dataset.opts = dataset.opts, mat.slice.id = mat.slice.id, integration.res = integration.res, mat = mat, mat.smooth = mat.smooth))
+      return(list(Y.list = Y.list, 
+                  coor.list = coor.list, 
+                  L.list = L.list, 
+                  embed.list = embed.list, 
+                  embed.list.finetune = embed.list.finetune, 
+                  dataset.opts = dataset.opts, 
+                  mat.slice.id = mat.slice.id, 
+                  integration.res = integration.res, 
+                  mat = mat, 
+                  mat.smooth = mat.smooth,
+                  exhaustive.list = exhaustive.list))
 
     }#else
 
   }#else
 
-  
-  
 }#Horizontal.Integration.Assemble
 
 
@@ -814,7 +896,7 @@ Vertical.Integration.Assemble <- function(
     h.opt = "first",   #default, first
     mod.opt = "all",   #all, common
     L2.in = "default", #default, L2norm, L2norm.joint
-    random.seed = 1,
+    random.seed = 123,
     smooth = F,
     n_neighbors = 40,    #vertical integration parameters - optimized
     n_neighbors_large = 50,  #vertical integration parameters - optimized

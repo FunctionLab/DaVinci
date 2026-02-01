@@ -1615,10 +1615,40 @@ manifoldDecomp_adaptive=function(Y,
 
     #if L4_left and L4_right is too close, then Done
     if (abs(L4_left-L4_right) < 0.1){
-      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace = trace, tol, pos, pos.B, thr = cor.thr, early_flag = F)
+      md.run <- md.default(Y, 
+                           B0, 
+                           k, 
+                           max.iter, 
+                           L1, 
+                           L2, 
+                           L4 = L4_pointer, 
+                           right.shur, 
+                           adaptive.iter, 
+                           adaptive.frac, 
+                           trace = trace, 
+                           tol, 
+                           pos, 
+                           pos.B, 
+                           thr = cor.thr, 
+                           early_flag = F)
       md.run$flag <- "Done"
     }else{
-      md.run <- md.default(Y, B0, k, max.iter, L1, L2, L4 = L4_pointer, right.shur, adaptive.iter, adaptive.frac, trace = trace, tol, pos, pos.B, thr = cor.thr, early_flag = T)
+      md.run <- md.default(Y, 
+                           B0, 
+                           k, 
+                           max.iter, 
+                           L1, 
+                           L2, 
+                           L4 = L4_pointer, 
+                           right.shur, 
+                           adaptive.iter, 
+                           adaptive.frac, 
+                           trace = trace, 
+                           tol, 
+                           pos, 
+                           pos.B, 
+                           thr = cor.thr, 
+                           early_flag = T)
     }#else
 
 
@@ -1732,13 +1762,47 @@ manifoldDecomp_adaptive=function(Y,
 
   if (save.complete){
     if (to_drop){
-      return(list(B=B, Z=Z, Zraw=Zraw, Zproject=Zproject,L1=L1, L2=L2, L4 = L4_pointer, k = k, shur0 = shur0, right.shur = right.shur, Y= Y, L= L, LV.to_drop = LV.to_drop, B0 = B0, Z0 = Z0))
+      return(list(B=B, 
+                  Z=Z, 
+                  Zraw=Zraw, 
+                  Zproject=Zproject,
+                  L1=L1, 
+                  L2=L2, 
+                  L4 = L4_pointer, 
+                  k = k, 
+                  shur0 = shur0, 
+                  right.shur = right.shur, 
+                  Y= Y, 
+                  L= L, 
+                  LV.to_drop = LV.to_drop, 
+                  B0 = B0, 
+                  Z0 = Z0))
     }else{
-      return(list(B=B, Z=Z, Zraw=Zraw, Zproject=Zproject,L1=L1, L2=L2, L4 = L4_pointer, k = k, shur0 = shur0, right.shur = right.shur, Y= Y, L= L))
+      return(list(B=B, 
+                  Z=Z, 
+                  Zraw=Zraw, 
+                  Zproject=Zproject,
+                  L1=L1, 
+                  L2=L2, 
+                  L4 = L4_pointer, 
+                  k = k, 
+                  shur0 = shur0, 
+                  right.shur = right.shur, 
+                  Y= Y, 
+                  L= L))
     }#else
 
   }else{
-    return(list(B=B, Z=Z, Zraw=Zraw, Zproject=Zproject,L1=L1, L2=L2, L4 = L4_pointer, k = k, shur0 = shur0, right.shur = right.shur))
+    return(list(B=B, 
+                Z=Z, 
+                Zraw=Zraw, 
+                Zproject=Zproject,
+                L1=L1, 
+                L2=L2, 
+                L4 = L4_pointer, 
+                k = k, 
+                shur0 = shur0, 
+                right.shur = right.shur))
   }#else
 
 
