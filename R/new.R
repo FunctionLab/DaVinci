@@ -620,9 +620,10 @@ Horizontal.Integration.Assemble <- function(
     L2.in = "default", #default, L2norm, L2norm.joint
     random.seed = 123,
     smooth = F,
-    cores = 2, # number of cores for parallelization
+    workers = 2, # number of cores/workers for parallelization
     ram = 1, # in GB max RAM usage 
-    sequential = F
+    sequential = F,
+    multi = "multicore" # multicore (mac and linux), multisession (for windows)
     ){ 
 
   
@@ -637,7 +638,12 @@ Horizontal.Integration.Assemble <- function(
     future::plan(future::sequential)
   }else{
     #parallel execution
-    future::plan(future::multicore, workers = cores)
+    if (multi == "multisession"){
+      future::plan(future::multisession, workers = workers)
+    }else{
+      future::plan(future::multicore, workers = workers)
+    }
+    pkgs_to_load <- if (multi == "multisession") c("DaVinci", "progressr") else NULL
   }
 
   options(future.globals.maxSize = ram * 1024^3)
@@ -711,7 +717,7 @@ Horizontal.Integration.Assemble <- function(
       }#for k.arg
 
       return(proj)
-    }, future.seed = TRUE)
+    }, future.seed = TRUE, future.packages = pkgs_to_load)
 
   })
 
@@ -741,7 +747,7 @@ Horizontal.Integration.Assemble <- function(
                 LVs.filter.thr = 0.9, 
                 freq = 1, 
                 opt = "B")
-    }, future.seed = TRUE)
+    }, future.seed = TRUE, future.packages = pkgs_to_load)
     
 
     #run again to finetune
@@ -759,7 +765,7 @@ Horizontal.Integration.Assemble <- function(
                               shur0 = exhaustive.list[[ii]][[1]]$shur0, 
                               verbose = F, 
                               random.seed = random.seed)
-    }, future.seed = TRUE)
+    }, future.seed = TRUE, future.packages = pkgs_to_load)
 
 
     #Finetune after self-contrastive learning
@@ -774,7 +780,7 @@ Horizontal.Integration.Assemble <- function(
            shur0 = ICAp.res$shur0, 
            L1 = ICAp.res$L1, 
            L2 = ICAp.res$L2)
-    }, future.seed = TRUE)
+    }, future.seed = TRUE, future.packages = pkgs_to_load)
     
     }else if (input.opt == "FineTune"){
       
@@ -873,7 +879,7 @@ Horizontal.Integration.Assemble <- function(
       
       return(list(idx = subpart.index, 
                   val = (subpart+t(subpart.smooth))/2))
-    }, future.seed = TRUE)
+    }, future.seed = TRUE, future.packages = pkgs_to_load)
     
     for (update in smooth_updates) {
       mat.smooth[update$idx, ] <- update$val
@@ -894,6 +900,8 @@ Horizontal.Integration.Assemble <- function(
     }#else
 
   }#else
+
+  future::plan(sequential) # Explicitly close multisession workers by switching plan
 
 }#Horizontal.Integration.Assemble
 
