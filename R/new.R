@@ -621,7 +621,7 @@ Horizontal.Integration.Assemble <- function(
     random.seed = 123,
     smooth = F,
     workers = 2, # number of cores/workers for parallelization
-    ram = 1, # in GB max RAM usage 
+    ram = 15, # in GB max RAM usage 
     sequential = F,
     multi = "multicore" # multicore (mac and linux), multisession (for windows)
     ){ 
