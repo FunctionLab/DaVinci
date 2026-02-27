@@ -1,3 +1,7 @@
+library(future)
+library(future.apply) 
+library(progressr)
+
 #' Adaptive Leiden/Louvain clustering
 #'
 #' When the number of clusters is set, run louvain/leiden clustering in an adaptive manner.
@@ -616,8 +620,9 @@ Horizontal.Integration.Assemble <- function(
     L2.in = "default", #default, L2norm, L2norm.joint
     random.seed = 123,
     smooth = F,
-    cores = 1, # number of cores for parallelization
-    ram = 1 # in GB max RAM usage 
+    cores = 2, # number of cores for parallelization
+    ram = 1, # in GB max RAM usage 
+    sequential = F
     ){ 
 
   
@@ -627,13 +632,18 @@ Horizontal.Integration.Assemble <- function(
     stop("Please include a vector of character names corresponding to the slices.")
   }#if
 
+  if (sequential){
+    #sequential execution
+    future::plan(future::sequential)
+  }else{
+    #parallel execution
+    future::plan(future::multicore, workers = cores)
+  }
 
-  plan(multicore, workers = cores)
   options(future.globals.maxSize = ram * 1024^3)
 
   # progress bar settings 
-  handlers("progress")
-
+  progressr::handlers("progress")
 
   options(
     progressr.enable = TRUE,
@@ -649,11 +659,11 @@ Horizontal.Integration.Assemble <- function(
   #self-contrastive learning step
   #########################################################
   
-  exhaustive.list <- with_progress({
+  exhaustive.list <- progressr::with_progress({
     
-    p <- progressor(steps = length(Y.list) * length(k.arg.list))
+    p <- progressr::progressor(steps = length(Y.list) * length(k.arg.list))
 
-    future_lapply(seq_along(Y.list), function(ii) {
+    future.apply::future_lapply(seq_along(Y.list), function(ii) {
       
       message(paste0("Working on Sample ", ii, " / ", length(Y.list)))
       proj <- list()
@@ -726,7 +736,7 @@ Horizontal.Integration.Assemble <- function(
     #self contrastive learning
     #############################
     
-    embed.list <- future_lapply(seq_along(exhaustive.list), function(ii) {
+    embed.list <- future.apply::future_lapply(seq_along(exhaustive.list), function(ii) {
       self_deco(exhaustive.list[[ii]], 
                 LVs.filter.thr = 0.9, 
                 freq = 1, 
@@ -737,7 +747,7 @@ Horizontal.Integration.Assemble <- function(
     #run again to finetune
     #############################
     
-    embed.list.finetune <- future_lapply(seq_along(embed.list), function(ii) {
+    embed.list.finetune <- future.apply::future_lapply(seq_along(embed.list), function(ii) {
       manifoldDecomp_adaptive(Y.list[[ii]], 
                               L.list[[ii]], 
                               k = nrow(embed.list[[ii]]$LVs), 
@@ -755,7 +765,7 @@ Horizontal.Integration.Assemble <- function(
     #Finetune after self-contrastive learning
     if (input.opt == "OnlyDeco"){
     
-    dav.res.list <- future_lapply(seq_along(embed.list.finetune), function(ii) {
+    dav.res.list <- future.apply::future_lapply(seq_along(embed.list.finetune), function(ii) {
       ICAp.res <- embed.list.finetune[[ii]]
       #construct the pseudo ICAp.res objects
       list(Z = t(embed$LVs.pair), 
@@ -850,7 +860,7 @@ Horizontal.Integration.Assemble <- function(
     }else{
       mat.smooth <- mat
 
-    smooth_updates <- future_lapply(seq_along(dataset.opts), function(ii) {
+    smooth_updates <- future.apply::future_lapply(seq_along(dataset.opts), function(ii) {
       print(ii)
       
       subpart.index <- which(mat.slice.id==dataset.opts[ii])
