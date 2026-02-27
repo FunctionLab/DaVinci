@@ -615,8 +615,10 @@ Horizontal.Integration.Assemble <- function(
     mod.opt = "all",   #all, common
     L2.in = "default", #default, L2norm, L2norm.joint
     random.seed = 123,
-    smooth = F
-    ){
+    smooth = F,
+    cores = 1, # number of cores for parallelization
+    ram = 1 # in GB max RAM usage 
+    ){ 
 
   
   #sanity check
@@ -624,63 +626,84 @@ Horizontal.Integration.Assemble <- function(
   if (is.null(dataset.opts)){
     stop("Please include a vector of character names corresponding to the slices.")
   }#if
-  
-  
+
+
+  plan(multicore, workers = cores)
+  options(future.globals.maxSize = ram * 1024^3)
+
+  # progress bar settings 
+  handlers("progress")
+
+
+  options(
+    progressr.enable = TRUE,
+    progressr.enable_after = 0,      
+    progressr.delay_stdout = FALSE   
+  )
+
+  progressr::handlers(progressr::handler_txtprogressbar(
+    file = stdout(),
+    enable_after = 0
+  ))
+
   #self-contrastive learning step
   #########################################################
-  exhaustive.list <- list()
-
-  #ptm <- proc.time()
-  for (ii in 1:length(Y.list)){
+  
+  exhaustive.list <- with_progress({
     
-    message(paste0("Working on Sample ", ii, " / ", length(Y.list)))
-    proj <- list()
-    s0 <- NULL  
-    
-    
-    count <- 0
-    for (k.arg in k.arg.list){
-      message("Working on k=", k.arg)
-      
-      if (is.null(s0)){
+    p <- progressor(steps = length(Y.list) * length(k.arg.list))
 
-        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], 
-                                            L.list[[ii]], 
-                                            k = k.arg, 
-                                            L4 = L4.arg, 
-                                            L4_adaptive = 2, 
-                                            to_drop = T, 
-                                            save.complete = T,
-                                            verbose = F, 
-                                            random.seed = random.seed)  
-      }else{
-
-        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], 
-                                            L.list[[ii]], 
-                                            k = k.arg, 
-                                            L4 = L4.arg, 
-                                            L4_adaptive = 2, 
-                                            to_drop = T, 
-                                            save.complete = T, 
-                                            shur0 = s0, 
-                                            verbose = F, 
-                                            random.seed = random.seed)  
-      }#else
+    future_lapply(seq_along(Y.list), function(ii) {
       
-      #saveRDS(ICAp.res, file = paste0(output.folder, "/", save.label, "@", normalize.version, "@k=", k.arg,".RDS") )
-      count <- count+1
-      proj[[count]] <- ICAp.res
+      message(paste0("Working on Sample ", ii, " / ", length(Y.list)))
+      proj <- list()
+      s0 <- NULL  
       
-      if (is.null(s0)){
-        s0 <- ICAp.res$shur0
-      }#if
       
-    }#for k.arg
+      count <- 0
+      for (k.arg in k.arg.list){
+        message("Working on k=", k.arg)
+        
+        if (is.null(s0)){
 
-    exhaustive.list[[ii]] <- proj  
-  }#for ii
-  #print(proc.time()-ptm)
+          ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], 
+                                              L.list[[ii]], 
+                                              k = k.arg, 
+                                              L4 = L4.arg, 
+                                              L4_adaptive = 2, 
+                                              to_drop = T, 
+                                              save.complete = T,
+                                              verbose = F, 
+                                              random.seed = random.seed)  
+        }else{
 
+          ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], 
+                                              L.list[[ii]], 
+                                              k = k.arg, 
+                                              L4 = L4.arg, 
+                                              L4_adaptive = 2, 
+                                              to_drop = T, 
+                                              save.complete = T, 
+                                              shur0 = s0, 
+                                              verbose = F, 
+                                              random.seed = random.seed)  
+        }#else
+        
+        count <- count+1
+        proj[[count]] <- ICAp.res
+
+        p(sprintf("Sample %d: k=%d", ii, k.arg))
+        
+        if (is.null(s0)){
+          s0 <- ICAp.res$shur0
+        }#if
+        
+      }#for k.arg
+
+      return(proj)
+    }, future.seed = TRUE)
+
+  })
 
 
     #self contrastive learning step
@@ -702,55 +725,46 @@ Horizontal.Integration.Assemble <- function(
     
     #self contrastive learning
     #############################
-    embed.list <- list()
-    for (ii in 1:length(exhaustive.list)){
-
-      embed.list[[ii]] <- self_deco(exhaustive.list[[ii]], 
-                                    LVs.filter.thr = 0.9, 
-                                    freq = 1, 
-                                    opt = "B")
-    }#for ii
+    
+    embed.list <- future_lapply(seq_along(exhaustive.list), function(ii) {
+      self_deco(exhaustive.list[[ii]], 
+                LVs.filter.thr = 0.9, 
+                freq = 1, 
+                opt = "B")
+    }, future.seed = TRUE)
     
 
     #run again to finetune
     #############################
     
-    embed.list.finetune <- list()
-    for (ii in 1:length(embed.list)){
-      
-      embed.list.finetune[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], 
-                            L.list[[ii]], 
-                            k = nrow(embed.list[[ii]]$LVs), 
-                            B = embed.list[[ii]]$LVs, 
-                            L4 = L4.arg, 
-                            L4_adaptive = 2, 
-                            to_drop = T, 
-                            save.complete = T, 
-                            shur0 = exhaustive.list[[ii]][[1]]$shur0, 
-                            verbose = F, 
-                            random.seed = random.seed)
-            
-    }#for ii
+    embed.list.finetune <- future_lapply(seq_along(embed.list), function(ii) {
+      manifoldDecomp_adaptive(Y.list[[ii]], 
+                              L.list[[ii]], 
+                              k = nrow(embed.list[[ii]]$LVs), 
+                              B = embed.list[[ii]]$LVs, 
+                              L4 = L4.arg, 
+                              L4_adaptive = 2, 
+                              to_drop = T, 
+                              save.complete = T, 
+                              shur0 = exhaustive.list[[ii]][[1]]$shur0, 
+                              verbose = F, 
+                              random.seed = random.seed)
+    }, future.seed = TRUE)
 
 
     #Finetune after self-contrastive learning
     if (input.opt == "OnlyDeco"){
-    dav.res.list <- list()
     
-    for (ii in 1:length(embed.list.finetune)){
-      
+    dav.res.list <- future_lapply(seq_along(embed.list.finetune), function(ii) {
       ICAp.res <- embed.list.finetune[[ii]]
       #construct the pseudo ICAp.res objects
-      tmp <- list(Z = t(embed$LVs.pair), 
-                  B = embed$LVs, 
-                  L4 = ICAp.res$L4, 
-                  shur0 = ICAp.res$shur0, 
-                  L1 = ICAp.res$L1, 
-                  L2 = ICAp.res$L2)
-      #cor.res <- cor(t(embed$LVs), t(ICAp.res$B))
-      
-      dav.res.list[[ii]] <- tmp
-    }#for ii
+      list(Z = t(embed$LVs.pair), 
+           B = embed$LVs, 
+           L4 = ICAp.res$L4, 
+           shur0 = ICAp.res$shur0, 
+           L1 = ICAp.res$L1, 
+           L2 = ICAp.res$L2)
+    }, future.seed = TRUE)
     
     }else if (input.opt == "FineTune"){
       
@@ -836,11 +850,10 @@ Horizontal.Integration.Assemble <- function(
     }else{
       mat.smooth <- mat
 
-    for (ii in 1:length(dataset.opts)){
+    smooth_updates <- future_lapply(seq_along(dataset.opts), function(ii) {
       print(ii)
       
       subpart.index <- which(mat.slice.id==dataset.opts[ii])
-      
       subpart <- mat[subpart.index,]
       subpart.smooth <- refinement.batch(subpart, 
                                          as.matrix(coor.list[[ii]])[rownames(subpart),], 
@@ -848,9 +861,13 @@ Horizontal.Integration.Assemble <- function(
                                          neighbor.arg = 8, 
                                          tasks = "continuous")
       
-      mat.smooth[subpart.index,] <- (subpart+t(subpart.smooth))/2
-      
-    }#for ii
+      return(list(idx = subpart.index, 
+                  val = (subpart+t(subpart.smooth))/2))
+    }, future.seed = TRUE)
+    
+    for (update in smooth_updates) {
+      mat.smooth[update$idx, ] <- update$val
+    }
     
       return(list(Y.list = Y.list, 
                   coor.list = coor.list, 
