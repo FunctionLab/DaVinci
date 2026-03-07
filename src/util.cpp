@@ -1,16 +1,9 @@
 // [[Rcpp::depends(RcppArmadillo, RcppEigen)]]
 #include <RcppArmadillo.h>
 #include <RcppEigen.h>
-#include <R_ext/Lapack.h>
 using namespace Rcpp;
 using namespace arma;
 
-
-
-
-extern "C" void F77_NAME(dtrsyl)(const char*, const char*, const int*, const int*, const int*,
-                        const double*, const int*, const double*, const int*,
-                        double*, const int*, double*, int*);
 
 
 //' Fast Matrix multiplication
@@ -60,8 +53,12 @@ arma::mat sylvester_pre(arma::mat left, arma::mat Z2, arma::mat T2, arma::mat to
   char trana = 'N';
   char tranb = 'N';
   int isgn = +1;
-  int m = T1.n_rows;
-  int n = T2.n_cols;
+  
+  blas_int m = (blas_int)T1.n_rows;
+  blas_int n = (blas_int)T2.n_cols;
+  blas_int lda = m;
+  blas_int ldb = n;
+  blas_int ldc = m;
 
   //Rcout << "0" << "\n";
 
@@ -72,9 +69,14 @@ arma::mat sylvester_pre(arma::mat left, arma::mat Z2, arma::mat T2, arma::mat to
 
   //LAPACKE_dtrsyl(info, trana, tranb, isgn, m, n, T1.memptr(), m, T2.memptr(), n, Y.memptr(), m, scale);
   //F77_CALL(dtrsyl)(&trana, &tranb, &isgn, &m, &n, T1.memptr(), &m, T2.memptr(), &n, Y.memptr(), &m, &scale, &info);
+  //dtrsyl_(&trana, &tranb, &isgn, &m, &n, T1.memptr(), &m, T2.memptr(), &n, Y.memptr(), &m, &scale, &info);
 
-  dtrsyl_(&trana, &tranb, &isgn, &m, &n, T1.memptr(), &m, T2.memptr(), &n, Y.memptr(), &m, &scale, &info);
-
+  arma::lapack::trsyl(&trana, &tranb, &isgn, &m, &n, 
+                       T1.memptr(), &lda, 
+                       T2.memptr(), &ldb, 
+                       Y.memptr(), &ldc, 
+                       &scale, &info);
+                       
   //Y /= (-scale);
   Y /= (scale);
 
