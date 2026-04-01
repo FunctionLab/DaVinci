@@ -589,6 +589,288 @@ Proximity.Dependency.scatter <- function(gene.name,
 
 
 
+#Other parameters
+#save.label <- "rna" #rna, peak as input        #preprocess
+#normaliza.version <- "gene" #should be used when processing the data     #preprocess
+# - rna, adt -> gene
+# - atac -> gene, LSI_1, LSI_2, LSI_3
+
+#clustering input parameters
+# - L2.opt <- "Yes" #Yes, No - whether L2norm before finding the nearest neighbors or mclust
+# - k.opt <- 40 #neighboring paramters for louvain
+
+#' Cross-sample (Horizontal) integration wrapper
+#'
+#' Cross-sample (Horizontal) integration
+#' 
+#' @export
+Horizontal.Integration.Assemble <- function(
+    dataset.opts = NULL,
+    Y.list,
+    L.list, 
+    coor.list,
+    k.arg.list = c(4, 6, 8, 10, 11, 12, 13, 15, 16, 18, 20, 22, 24), #the parameters for self-contrastive learning step
+    L4.arg = 50, #parameters
+    input.opt = "FineTune", #OnlyDeco, FineTune
+    h.opt = "first",   #default, first
+    mod.opt = "all",   #all, common
+    L2.in = "default", #default, L2norm, L2norm.joint
+    random.seed = 123,
+    smooth = F
+    ){
+
+  
+  #sanity check
+  #########################################################
+  if (is.null(dataset.opts)){
+    stop("Please include a vector of character names corresponding to the slices.")
+  }#if
+  
+  
+  #self-contrastive learning step
+  #########################################################
+  exhaustive.list <- list()
+
+  #ptm <- proc.time()
+  for (ii in 1:length(Y.list)){
+    
+    message(paste0("Working on Sample ", ii, " / ", length(Y.list)))
+    proj <- list()
+    s0 <- NULL  
+    
+    
+    count <- 0
+    for (k.arg in k.arg.list){
+      message("Working on k=", k.arg)
+      
+      if (is.null(s0)){
+
+        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], 
+                                            L.list[[ii]], 
+                                            k = k.arg, 
+                                            L4 = L4.arg, 
+                                            L4_adaptive = 2, 
+                                            to_drop = T, 
+                                            save.complete = T,
+                                            verbose = F, 
+                                            random.seed = random.seed)  
+      }else{
+
+        ICAp.res <- manifoldDecomp_adaptive(Y.list[[ii]], 
+                                            L.list[[ii]], 
+                                            k = k.arg, 
+                                            L4 = L4.arg, 
+                                            L4_adaptive = 2, 
+                                            to_drop = T, 
+                                            save.complete = T, 
+                                            shur0 = s0, 
+                                            verbose = F, 
+                                            random.seed = random.seed)  
+      }#else
+      
+      #saveRDS(ICAp.res, file = paste0(output.folder, "/", save.label, "@", normalize.version, "@k=", k.arg,".RDS") )
+      count <- count+1
+      proj[[count]] <- ICAp.res
+      
+      if (is.null(s0)){
+        s0 <- ICAp.res$shur0
+      }#if
+      
+    }#for k.arg
+
+    exhaustive.list[[ii]] <- proj  
+  }#for ii
+  #print(proc.time()-ptm)
+
+
+
+    #self contrastive learning step
+    #######################################################################################
+  if (length(k.arg.list) == 1){
+      
+      #create the object needed for the downstream analysis
+      embed.list <- list()
+      embed.list.finetune <- list()
+      dav.res.list <- list()
+
+      for (ii in 1:length(Y.list)){
+          embed.list[[ii]] <- exhaustive.list[[ii]][[1]]  
+          embed.list.finetune[[ii]] <- exhaustive.list[[ii]][[1]]  
+          dav.res.list[[ii]] <- exhaustive.list[[ii]][[1]]
+      }#for ii
+      
+  }else{
+    
+    #self contrastive learning
+    #############################
+    embed.list <- list()
+    for (ii in 1:length(exhaustive.list)){
+
+      embed.list[[ii]] <- self_deco(exhaustive.list[[ii]], 
+                                    LVs.filter.thr = 0.9, 
+                                    freq = 1, 
+                                    opt = "B")
+    }#for ii
+    
+
+    #run again to finetune
+    #############################
+    
+    embed.list.finetune <- list()
+    for (ii in 1:length(embed.list)){
+      
+      embed.list.finetune[[ii]] <- manifoldDecomp_adaptive(Y.list[[ii]], 
+                            L.list[[ii]], 
+                            k = nrow(embed.list[[ii]]$LVs), 
+                            B = embed.list[[ii]]$LVs, 
+                            L4 = L4.arg, 
+                            L4_adaptive = 2, 
+                            to_drop = T, 
+                            save.complete = T, 
+                            shur0 = exhaustive.list[[ii]][[1]]$shur0, 
+                            verbose = F, 
+                            random.seed = random.seed)
+            
+    }#for ii
+
+
+    #Finetune after self-contrastive learning
+    if (input.opt == "OnlyDeco"){
+    dav.res.list <- list()
+    
+    for (ii in 1:length(embed.list.finetune)){
+      
+      ICAp.res <- embed.list.finetune[[ii]]
+      #construct the pseudo ICAp.res objects
+      tmp <- list(Z = t(embed$LVs.pair), 
+                  B = embed$LVs, 
+                  L4 = ICAp.res$L4, 
+                  shur0 = ICAp.res$shur0, 
+                  L1 = ICAp.res$L1, 
+                  L2 = ICAp.res$L2)
+      #cor.res <- cor(t(embed$LVs), t(ICAp.res$B))
+      
+      dav.res.list[[ii]] <- tmp
+    }#for ii
+    
+    }else if (input.opt == "FineTune"){
+      
+      dav.res.list <- embed.list.finetune
+      
+    }#else if
+  }#else
+
+
+
+  if (length(dataset.opts)==1){
+
+      #no need to integrate here, directly return here
+      mat <- t(dav.res.list[[1]]$B)
+      mat <- as.matrix(mat)
+      mat.slice.id <- rep(dataset.opts[1], nrow(mat))
+      #no integration.res
+      return(list(Y.list = Y.list, 
+                  coor.list = coor.list, 
+                  L.list = L.list, 
+                  embed.list = embed.list, 
+                  embed.list.finetune = embed.list.finetune, 
+                  dataset.opts = dataset.opts, 
+                  mat.slice.id = mat.slice.id, 
+                  mat = mat,
+                  exhaustive.list = exhaustive.list))
+
+  }else{
+    #Horizontal integration
+    ########################################################
+
+    if (h.opt == "default"){
+    
+      integration.res <- Horizontal.Integration(Y.list, 
+                                                L.list, 
+                                                coor.list, 
+                                                dav.res.list = dav.res.list, 
+                                                LVs.filter.thr = 0.8, 
+                                                mod = mod.opt, 
+                                                remove.LV1 = F, 
+                                                L2.option = L2.in)
+      
+    }else if (h.opt == "first"){
+          
+      integration.res <- Horizontal.Integration.first(Y.list, 
+                                                      L.list, 
+                                                      coor.list, 
+                                                      dav.res.list = dav.res.list, 
+                                                      LVs.filter.thr = 0.8, 
+                                                      mod = mod.opt, 
+                                                      remove.LV1 = F, 
+                                                      L2.option = L2.in)
+      
+    }#else
+    
+    
+    #cleanup the output
+    #########################################################
+    embed <- integration.res$LVs_embeddings
+    #make sure the sample names can align
+    sids <- unlist(lapply(strsplit( rownames(embed), "_"), function(x){paste0(x[-1], collapse = "_")}))
+    mat.slice.id <- unlist(lapply(strsplit(rownames(embed),"_"), function(x){x[1]}))
+    mat.slice.id <- dataset.opts[as.numeric(mat.slice.id)]
+
+    rownames(embed) <- sids             
+    mat <- as.matrix(embed)
+
+    
+    
+    #smoothing first no matter used or not
+    #########################################################
+    if (!smooth){
+        return(list(Y.list = Y.list, 
+                    coor.list = coor.list, 
+                    L.list = L.list, 
+                    embed.list = embed.list, 
+                    embed.list.finetune = embed.list.finetune, 
+                    dataset.opts = dataset.opts, 
+                    mat.slice.id = mat.slice.id, 
+                    integration.res = integration.res, 
+                    mat = mat,
+                    exhaustive.list = exhaustive.list))
+    }else{
+      mat.smooth <- mat
+
+    for (ii in 1:length(dataset.opts)){
+      print(ii)
+      
+      subpart.index <- which(mat.slice.id==dataset.opts[ii])
+      
+      subpart <- mat[subpart.index,]
+      subpart.smooth <- refinement.batch(subpart, 
+                                         as.matrix(coor.list[[ii]])[rownames(subpart),], 
+                                         neighbor.option = "KNN", 
+                                         neighbor.arg = 8, 
+                                         tasks = "continuous")
+      
+      mat.smooth[subpart.index,] <- (subpart+t(subpart.smooth))/2
+      
+    }#for ii
+    
+      return(list(Y.list = Y.list, 
+                  coor.list = coor.list, 
+                  L.list = L.list, 
+                  embed.list = embed.list, 
+                  embed.list.finetune = embed.list.finetune, 
+                  dataset.opts = dataset.opts, 
+                  mat.slice.id = mat.slice.id, 
+                  integration.res = integration.res, 
+                  mat = mat, 
+                  mat.smooth = mat.smooth,
+                  exhaustive.list = exhaustive.list))
+
+    }#else
+
+  }#else
+
+}#Horizontal.Integration.Assemble
+
 
 
 
@@ -607,7 +889,7 @@ Proximity.Dependency.scatter <- function(gene.name,
 #' Cross-sample (Horizontal) integration
 #' 
 #' @export
-Horizontal.Integration.Assemble <- function(
+Horizontal.Integration.Assemble.Parallel <- function(
     dataset.opts = NULL,
     Y.list,
     L.list, 

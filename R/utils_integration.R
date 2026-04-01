@@ -711,10 +711,283 @@ MinMax <- function(x, val.min, val.max){
 }#MinMax
 
 
+#' Integrate multiple modalities
+#' @import BiocNeighbors
+#' @details This function requires `Seurat`. Make sure it is installed
+#' @export
+MultiModalIntegration <- function(
+  modals,                
+  mats = modals,         
+  library.sizes = NULL,  
+  library.types = NULL, 
+  baselines = NULL,      
+  n_neighbors = 40,
+  n_neighbors_large = 50,
+  sigma.idx = n_neighbors,
+  snn.far.nn = T,
+  L2norm = "column",
+  sd.scale = 1,
+  cross.contant = 1e-4,
+  prune.SNN = 0,
+  kernel.power = 1){
 
 
+  n_mod <- length(modals)
+  mod_names <- names(modals)
+  if (is.null(mod_names)) mod_names <- paste0("modal.", seq_len(n_mod))
+
+  if (n_mod < 2) stop("At least 2 modalities are required.")
+
+  for (m in seq_len(n_mod)) {
+    if (sum(duplicated(rownames(modals[[m]]))) > 0) {
+      stop("The spot/bin names are not unique.")
+    }
+  }#for
+
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("Seurat is required for this function but is not installed. Please install it.")
+  }#if
+
+  #align all modalities to the row order of modals[[1]]
+  ref_rownames <- rownames(modals[[1]])
+  for (m in seq_len(n_mod)) {
+    if (is.null(rownames(modals[[m]]))) {
+      stop(paste0("Modality ", mod_names[m], " has no valid row names. Please examine and assign proper row names."))
+    }
+    if (!all(sort(ref_rownames) == sort(rownames(modals[[m]])))) {
+      stop(paste0("Row names of modality ", mod_names[m], " don't align with modality 1. Please check carefully."))
+    }
+    modals[[m]] <- modals[[m]][ref_rownames, ]
+    mats[[m]]   <- mats[[m]][ref_rownames, ]
+  }#for
+  message("Alignment test passed")
+
+  message("n_neighbors = ", n_neighbors)
+  message("n_neighbors_large = ", n_neighbors_large)
+  message("L2 = ", L2norm)
 
 
+  #L2 normalization
+  #################################
+  if (!is.null(L2norm)){
+    if (L2norm=="row"){
+
+      message("Sample-wise L2Norm")
+      for (m in seq_len(n_mod)) {
+        modals[[m]] <- L2Norm(modals[[m]], MARGIN = 1)
+        mats[[m]]   <- L2Norm(mats[[m]],   MARGIN = 1)
+      }#for
+
+    }else if (L2norm=="column"){
+
+      message("Column-wise L2Norm")
+      for (m in seq_len(n_mod)) {
+        modals[[m]] <- L2Norm(modals[[m]], MARGIN = 2)
+        mats[[m]]   <- L2Norm(mats[[m]],   MARGIN = 2)
+      }#for
+
+    }#else
+  }#if
+
+
+  #build up all graph
+  #################################
+  prebuild.indices <- vector("list", n_mod)
+  neighbors        <- vector("list", n_mod)
+  neighbors.large  <- vector("list", n_mod)
+
+  for (m in seq_len(n_mod)) {
+    prebuild.indices[[m]] <- BiocNeighbors::buildIndex(modals[[m]], BNPARAM = BiocNeighbors::AnnoyParam())
+    neighbors[[m]]       <- FindNN(data = modals[[m]], number.of.NN = n_neighbors,       prebuild.index = prebuild.indices[[m]])
+    neighbors.large[[m]] <- FindNN(data = modals[[m]], number.of.NN = n_neighbors_large, prebuild.index = prebuild.indices[[m]])
+  }#for
+
+
+  message("Calculating the modality weights")
+  ########################################################################################
+
+  #calculate the within and cross-modality distance
+  #################################
+
+  #nearest distance
+  NNdists <- lapply(neighbors, function(nb) nb$distance[, 1])
+
+  #within modality prediction and cross modality prediction
+  mat.pred <- lapply(seq_len(n_mod), function(m) {
+    lapply(seq_len(n_mod), function(k) PredictAssay(mats[[m]], neighbors[[k]]$index))
+  })
+
+  #calculate the distance, within and across modalities
+  impute.dists <- lapply(seq_len(n_mod), function(m) {
+    lapply(seq_len(n_mod), function(k) ImputeDist(mats[[m]], mat.pred[[m]][[k]], 0))
+  })
+
+
+  #calculate the kernel width
+  #################################
+  sds <- vector("list", n_mod)
+  if (snn.far.nn){
+    for (m in seq_len(n_mod)) {
+      snn.matrix <- Seurat:::ComputeSNN(nn_ranked = neighbors[[m]]$index, prune = prune.SNN)
+      snn.width  <- Seurat:::ComputeSNNwidth(
+        snn.graph    = snn.matrix,
+        k.nn         = n_neighbors,
+        l2.norm      = F,
+        embeddings   = mats[[m]],
+        nearest.dist = rep(0, nrow(modals[[m]]))
+      )
+      sds[[m]] <- snn.width * sd.scale
+    }#for
+  }else{
+    #calculate based on the sigma.idx neighbor
+    for (m in seq_len(n_mod)) {
+      sds[[m]] <- (neighbors[[m]]$distance[, sigma.idx] - NNdists[[m]]) * sd.scale
+    }#for
+  }#else
+
+  #calculate within and cross modality kernel, and modality weights
+  #################################
+
+  kernels <- lapply(seq_len(n_mod), function(m) {
+    lapply(seq_len(n_mod), function(k) exp(-1 * impute.dists[[m]][[k]] / sds[[m]]))
+  })
+
+  #compute the modality weights
+  scores <- lapply(seq_len(n_mod), function(m) {
+    cross.mean <- Reduce("+", kernels[[m]][-m]) / (n_mod - 1)
+    MinMax(kernels[[m]][[m]] / (cross.mean + cross.contant), val.min = 0, val.max = 200)
+  })
+
+  exp.scores <- lapply(scores, exp)
+  score.sum  <- Reduce("+", exp.scores)
+  weights    <- lapply(exp.scores, function(es) es / score.sum)
+
+  #reweigh the weight with the library size
+  #################################
+  #     library.sizes/library.types/baselines are now lists, one entry per modality
+  #     modalities with NULL library.sizes[[m]] are skipped (ratio=1, no reweighting)
+  message("")
+  if (!is.null(library.sizes)){
+
+    print("Adjust the weights by library size.")
+
+    #with internel parameters, defaults to this for these modality types if baselines[[m]] is not provided
+    baseline.rna  <- 2300
+    baseline.atac <- 7400
+
+    if (is.null(baselines))     baselines     <- vector("list", n_mod)
+    if (is.null(library.types)) library.types <- as.list(rep("rna", n_mod))
+
+    for (m in seq_len(n_mod)) {
+      if (is.null(baselines[[m]])) {
+        if (!is.null(library.types[[m]]) && library.types[[m]] == "atac") {
+          baselines[[m]] <- baseline.atac
+        } else if (!is.null(library.types[[m]]) && library.types[[m]] == "rna") {
+          baselines[[m]] <- baseline.rna
+        } else {
+          message("No baseline for modality ", mod_names[m], " — skipping library size reweighting.")
+          library.sizes[[m]] <- NULL  # treat as if no library size was provided
+        }
+        if (!is.null(baselines[[m]])) {
+          message("Reference UMI of modality ", mod_names[m], " is set to be: ", baselines[[m]])
+        }
+      }#if is.null
+    }#for
+
+    #with thresholding; modalities without a library.sizes entry get ratio=1 (no reweighting)
+    library.ratios <- lapply(seq_len(n_mod), function(m) {
+      if (!is.null(library.sizes[[m]])) {
+        message("Modality ", mod_names[m], ": adjusting weights with reference UMI.")
+        pmin(library.sizes[[m]] / baselines[[m]], 1)
+      } else {
+        message("Modality ", mod_names[m], ": no library size provided — weights not adjusted.")
+        rep(1, nrow(modals[[1]]))
+      }
+    })
+
+    weights    <- lapply(seq_len(n_mod), function(m) weights[[m]] * library.ratios[[m]])
+    weight.sum <- Reduce("+", weights)
+    weights    <- lapply(weights, function(w) w / weight.sum)
+
+  }else{
+    print("No adjustment with reference UMI.")
+  }#else
+
+
+  message("Calculating the weighted KNN and SNN")
+  ########################################################################################
+
+  #calculate the weighted sum of the link weights
+  n_neighbors_k <- n_neighbors
+
+  modal.union.neighbor.index <- list()
+
+  for (ii in 1:nrow(modals[[1]])){
+
+    all_indices <- lapply(neighbors.large, function(nb) nb$index[ii, ])
+    index.union <- unique(unlist(all_indices))
+
+    index.union.lw <- vapply(index.union, function(idx) {
+      total <- 0
+      for (m in seq_len(n_mod)) {
+        if (idx %in% all_indices[[m]]) total <- total + weights[[m]][idx]
+      }
+      total
+    }, numeric(1))
+
+    #sort and take the maxmimal several
+    modal.union.neighbor.index[[ii]] <- index.union[order(index.union.lw, decreasing = T)[1:n_neighbors_k]]
+
+  }#for ii
+
+  weighted.index <- do.call(rbind, modal.union.neighbor.index)
+  weighted.dist  <- modal.union.neighbor.index
+
+
+  #compute KNN
+  #########################################
+  jj <- c(t(weighted.index))
+  ii <- rep(1:nrow(weighted.index), each = ncol(weighted.index))
+
+  knn.mat <- Matrix::sparseMatrix(
+    i = ii,
+    j = jj,
+    x = 1,
+    dims = c(nrow(weighted.index), nrow(weighted.index))
+  )#knn.mat
+
+  diag(knn.mat) <- 1
+  knn.mat <- knn.mat+Matrix::t(knn.mat)-knn.mat*Matrix::t(knn.mat)
+
+
+  #compute SNN
+  #########################################
+  snn.mat <- Seurat:::ComputeSNN(nn_ranked = weighted.index, prune = prune.SNN)
+
+
+  names(weights) <- mod_names
+  if (!is.null(library.sizes)) names(library.sizes) <- mod_names
+
+  result <- list(
+    weights           = weights,
+    weighted.index    = weighted.index,
+    weighted.dist     = weighted.dist,
+    knn.mat           = knn.mat,
+    snn.mat           = snn.mat,
+    library.sizes     = library.sizes,
+    library.types     = library.types,
+    baselines         = baselines,
+    n_neighbors       = n_neighbors,
+    n_neighbors_large = n_neighbors_large
+  )
+
+  for (m in seq_len(n_mod)) {
+    result[[paste0("weight.", mod_names[m])]] <- weights[[m]]
+  }#for
+
+  return(result)
+
+}#MultiModalIntegration
 
 
 
