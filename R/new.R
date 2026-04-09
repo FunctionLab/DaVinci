@@ -1,7 +1,3 @@
-library(future)
-library(future.apply) 
-library(progressr)
-
 #' Adaptive Leiden/Louvain clustering
 #'
 #' When the number of clusters is set, run louvain/leiden clustering in an adaptive manner.
