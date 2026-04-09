@@ -16,5 +16,8 @@
 #' @importFrom stats wilcox.test
 #' @importFrom utils head
 #' @importFrom utils packageVersion
+#' @importFrom future plan multicore
+#' @importFrom future.apply future_lapply
+#' @importFrom progressr handlers handler_txtprogressbar with_progress
 ## usethis namespace: end
 NULL

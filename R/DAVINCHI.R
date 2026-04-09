@@ -14,7 +14,10 @@ pkgs <- c("Rcpp",
 "cluster",
 "mclust",
 "dendextend",
-"BiocNeighbors")
+"BiocNeighbors",
+"future",
+"future.apply",
+"progressr",)
 
 
 .onAttach <- function(libname, pkgname){
