@@ -17,7 +17,7 @@ pkgs <- c("Rcpp",
 "BiocNeighbors",
 "future",
 "future.apply",
-"progressr",)
+"progressr")
 
 
 .onAttach <- function(libname, pkgname){
