@@ -28,7 +28,10 @@ Imports:
     sf,
     paletteer,
     Polychrome,
-    BiocNeighbors
+    BiocNeighbors,
+    future,
+    future.apply,
+    progressr
 Remotes:
     bioc::BiocNeighbors
 Suggests:
@@ -36,6 +39,6 @@ Suggests:
     Seurat,
     uwot,
     Rtsne,
-    RcppML,
+    RcppML
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen
 SystemRequirements: BLAS, LAPACK
