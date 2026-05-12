@@ -20,21 +20,6 @@ leiden_adaptive <- function(nn,
     partition <- Seurat:::RunModularityClustering(nn, resolution = resolution.start, algorithm = 1, print.output = F) 
   }#else if
 
-  #wrapper, directly provide results for a given resolution
-  if (is.null(num.of.cluster)){
-
-     pp <- as.character(partition)
-    if (!is.null(rownames(nn))){
-        names(pp) <- rownames(nn)
-    }#if
-
-    if (full){
-      return(list(partition = pp, reso = resolution.start))
-    }else{
-      return(pp)
-    }#else
-
-  }#if
  
 
     #correct for singleton
@@ -70,6 +55,22 @@ leiden_adaptive <- function(nn,
         }#if 
 
     }#if 
+
+#wrapper, directly provide results for a given resolution
+  if (is.null(num.of.cluster)){
+
+     pp <- as.character(partition)
+    if (!is.null(rownames(nn))){
+        names(pp) <- rownames(nn)
+    }#if
+
+    if (full){
+      return(list(partition = pp, reso = resolution.start))
+    }else{
+      return(pp)
+    }#else
+
+  }#if
 
 
 

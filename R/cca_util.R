@@ -1,6 +1,12 @@
 
-impact.default <- function(reference.Z, query.gene.exp, k, L2, right.shur, thr = 0.8){
+impact.default <- function(reference.Z, 
+                           query.gene.exp, 
+                           k, 
+                           L2, 
+                           right.shur, 
+                           thr = 0.8){
   
+
   left <- 2*crossprod(reference.Z)+2*L2*diag(k)
   #left <- 2*crossprod(reference.Z)+2*L2*diag(ncol(reference.Z))
   total <- 2*t(reference.Z) %*% query.gene.exp
@@ -274,6 +280,9 @@ impact_adaptive <- function(reference.Z,
 
 
 
+
+
+
 #use the fixed L4
 #' Used by reciprocal_default() and reciprocal_with_Z()
 impact <- function(reference.Z, 
@@ -282,16 +291,25 @@ impact <- function(reference.Z,
                     query.L4, 
                     query.shur0 = NULL, 
                     query.ICAp.res = NULL, 
-                    scale=1, 
+                    scale = 1, 
                     max.iter = 200, 
                     cor.thr = 0.8, 
                     save.complete=F,
                     verbose = F,
                     random.seed = 123){
+
   pos.adj <- 3
   
   k <- ncol(reference.Z)
   
+  #number of spots in the tile can be smaller than the dimension
+  if ( ncol(reference.Z) > ncol(query.gene.exp) ){
+    k.svd <- ncol(query.gene.exp)
+  }else{
+    k.svd <- ncol(reference.Z)    
+  }#else
+
+
   #align the reference.Z and query.gene.exp
   gene.intersect <- intersect(rownames(reference.Z), rownames(query.gene.exp))
   reference.Z <- reference.Z[gene.intersect,]
@@ -310,14 +328,14 @@ impact <- function(reference.Z,
     }#if verbose
     
     set.seed(random.seed)
-    svdres <- rsvd(query.gene.exp, k = k)
+    svdres <- rsvd(query.gene.exp, k = k.svd)
     svdres <- rotateSVD(svdres)
     
-    L1 <- svdres$d[k]*scale
+    L1 <- svdres$d[k.svd]*scale
     if (!is.null(pos.adj)){
       L1 <- L1/pos.adj
     }#if
-    L2 <- svdres$d[k]*scale
+    L2 <- svdres$d[k.svd]*scale
     
   }else{
     L1 <- query.ICAp.res$L1
@@ -345,7 +363,12 @@ impact <- function(reference.Z,
     message("Shur done")
   }#if verbose
   
-  md.run <- impact.default(reference.Z, query.gene.exp, k, L2, right.shur, thr = cor.thr)
+  md.run <- impact.default(reference.Z, 
+                           query.gene.exp, 
+                           k, 
+                           L2, 
+                           right.shur, 
+                           thr = cor.thr)
   
   
   #wrap around the output
@@ -356,10 +379,24 @@ impact <- function(reference.Z,
   colnames(B) <- colnames(query.gene.exp)
   
   if (save.complete){
-    return(list(B=B, L1 = L1, L2 = L2, L4 = L4, k = k, query.shur0 = query.shur0, right.shur = right.shur, reference.Z = reference.Z, query.gene.exp = query.gene.exp, query.L = query.L))
+    return(list(B=B, 
+                L1 = L1, 
+                L2 = L2, 
+                L4 = L4, 
+                k = k, 
+                shur0 = query.shur0, 
+                right.shur = right.shur, 
+                reference.Z = reference.Z, 
+                query.gene.exp = query.gene.exp, 
+                query.L = query.L))
   }else{
-    return(list(B=B, L1 = L1, L2 = L2, L4 = L4, k = k))
-    #return(list(B=B, L1 = L1, L2 = L2, L4 = L4, k = k, query.shur0 = query.shur0, right.shur = right.shur))
+        return(list(B=B, 
+                L1 = L1, 
+                L2 = L2, 
+                L4 = L4, 
+                k = k, 
+                shur0 = query.shur0, 
+                right.shur = right.shur))
   }#else
   
 }#impact

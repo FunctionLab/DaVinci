@@ -919,7 +919,9 @@ scatter.FeaturePlot.list <- function(LVs,
 
                     #make sure aligned
                     LL <- LVs[mat.slice.id==dataset.opts[ii], jj]
-                    LL <- LL[rownames(coor.visual)]
+                    ss <- intersect(names(LL), rownames(coor.visual))
+                    LL <- LL[ss]
+                    coor.visual <- coor.visual[ss,]
 
                     count <- count+1
                     
