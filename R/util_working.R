@@ -1420,7 +1420,8 @@ manifoldDecomp_adaptive=function(Y,
                                  cor.thr = 0.8, 
                                  save.complete = F, 
                                  verbose = T,
-                                 random.seed = 123){
+                                 random.seed = 123,
+                                 sd.thr = 1e-2){
 
   pos.adj=3
   ng=nrow(Y)
@@ -1431,8 +1432,9 @@ manifoldDecomp_adaptive=function(Y,
     
   #standard deviation check
   feature.sd <- apply(Y, 1, sd)
-  if (max(feature.sd) < 1e-2){
-    stop("The overll variation is too small. Please consider other normalization strategies before running the main function.")
+  if (max(feature.sd) < sd.thr){
+    message(max(feature.sd))
+    stop("The overall variation is too small. Please consider other normalization strategies before running the main function.")
   }#if
   
   if (to_drop){

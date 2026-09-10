@@ -162,6 +162,23 @@ LSI_normalization <- function(atac, method = "1", scale.factor = 1e5, peak.filte
 
 
 
+clr_normalization <- function(mat,
+                              MARGIN = 2){
+
+
+      seurat_clr <- function(x) {
+                                  s <- sum(log1p(x[x > 0]))
+                                  exp_val <- exp(s / length(x))
+                                  log1p(x / exp_val)
+                                }#seurat_clr
+                                
+      return(apply(mat, MARGIN = MARGIN, seurat_clr))
+
+}#clr_normalization
+
+
+
+
 #wrapper to combine everything
 #' Wrapper to prepare the input
 #' @export
@@ -188,7 +205,7 @@ preprocess <- function(mat,
 
   #processing the mat
   ################################################
-  if (type %in% c("rna", "protein", "rna_raw")){
+  if (type %in% c("rna", "rna_raw")){
 
     tmp <- gene_normalization(mat, 
                               frac.thr = frac.thr, 
@@ -201,6 +218,11 @@ preprocess <- function(mat,
       mat <- tmp$gene.exp.log  
     }#else
     
+
+  }else if (type=="protein"){
+
+    mat <- clr_normalization(mat)
+
 
   }else if (type=="atac"){
 

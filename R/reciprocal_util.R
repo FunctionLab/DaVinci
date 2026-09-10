@@ -206,16 +206,16 @@ reciprocal_deco <- function(LVs,
       if (F){
           #iteratively remove the correlations
           while (max(cor.res)> LVs.filter.thr){
-        #remove the larger LV index
-        LV.to_drop <- max(which(cor.res==max(cor.res[upper.tri(cor.res)]), arr.ind = T))
-        LVs <- LVs[-LV.to_drop,]
-        
-        cor.res <- cor.res[-LV.to_drop, -LV.to_drop]
-        #cor.res <- cor(t(LVs))
-        #diag(cor.res) <- 0
-        #cor.res[lower.tri((cor.res))] <- 0
-      }#while 
-   
+            #remove the larger LV index
+            LV.to_drop <- max(which(cor.res==max(cor.res[upper.tri(cor.res)]), arr.ind = T))
+            LVs <- LVs[-LV.to_drop,]
+            
+            cor.res <- cor.res[-LV.to_drop, -LV.to_drop]
+            #cor.res <- cor(t(LVs))
+            #diag(cor.res) <- 0
+            #cor.res[lower.tri((cor.res))] <- 0
+          }#while 
+      
       }#if F
       
          
@@ -422,6 +422,20 @@ Horizontal.Integration.first <- function(Y.list,
   LVs <- reciprocal_concat(proj, option = L2.option)
   message("Concatenation finishes.")
 
+
+  #extreme case: filter out constant ones
+  LV.sd <- apply(LVs, 1, sd)
+  constant.LVs <- rownames(LVs)[which(LV.sd==0)]
+
+  if (length(constant.LVs) > 0){
+    message(paste0( length(constant.LVs)," constant LVs have been excluded."))
+    LVs <- LVs[which(!rownames(LVs) %in% constant.LVs),]
+
+  }#if 
+
+
+
+
   #batch correction
   ##########################################################
   if (is.null(batch.correction)){
@@ -471,16 +485,13 @@ Horizontal.Integration.first <- function(Y.list,
 
   message("Selection finishes.")
   
-    
-  #remove LV 1
-  #if (remove.LV1){
-  #  LVs_embeddings <- LVs_embeddings[,which(!grepl("LV 1$", colnames(LVs_embeddings)))]  
-  #}#if remove.L1
   
+  #remove LV 1
   if (remove.LV1){
-      LVs_embeddings <- LVs_embeddings[,which(!colnames(LVs_embeddings) %in% remove.LV1)]
-  }#if   
-   
+       LVs_embeddings <- LVs_embeddings[,which(!grepl("LV 1$", colnames(LVs_embeddings)))]  
+  }#if remove.L1
+
+
    #extract the loadings corrresponding to LVs_embeddings
    ######################################################
    loading.uid <- colnames(LVs_embeddings)

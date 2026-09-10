@@ -28,7 +28,8 @@ manifoldDecomp_adaptive(
   cor.thr = 0.8,
   save.complete = F,
   verbose = T,
-  random.seed = 123
+  random.seed = 123,
+  sd.thr = 0.01
 )
 }
 \arguments{

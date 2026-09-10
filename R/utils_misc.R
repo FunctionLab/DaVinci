@@ -361,6 +361,8 @@ tile_the_slice <- function(coord,
   ids_L1_unique <- sort(unique(ids_L1))
 
   for (ii in 1:length(ids_L1_unique)){
+    #print(ii)
+
     temp <- which(ids_L1==ids_L1_unique[ii])
     if (length(temp)<L2_size){
       ids_L2[temp] <- 1
