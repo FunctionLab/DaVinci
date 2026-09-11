@@ -61,9 +61,9 @@ impact_adaptive <- function(reference.Z,
                             save.complete=T, 
                             verbose = T,
                             random.seed = 123){
+  
   pos.adj <- 3
-  
-  
+    
   k <- ncol(reference.Z)  
   
   #number of spots in the tile can be smaller than the dimension
@@ -84,7 +84,12 @@ impact_adaptive <- function(reference.Z,
   reference.Z <- reference.Z[gene.intersect,]
   query.gene.exp <- query.gene.exp[gene.intersect,]
   
-  
+  #edge case
+  if (k.svd > length(gene.intersect)){
+      k.svd <- length(gene.intersect)
+  }#if 
+
+
   if (verbose){
     message("************")  
   }#if verbose
@@ -315,6 +320,12 @@ impact <- function(reference.Z,
   reference.Z <- reference.Z[gene.intersect,]
   query.gene.exp <- query.gene.exp[gene.intersect,]
   
+   #edge case
+    if (k.svd > length(gene.intersect)){
+        k.svd <- length(gene.intersect)
+    }#if 
+
+
   if (verbose){
     message("************")
   }#if verbose
