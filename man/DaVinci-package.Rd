@@ -11,5 +11,10 @@ Deconvolving latent Variables for integrated niche cluster identification
 \author{
 \strong{Maintainer}: Weiguang Mao \email{wmao@flatironinstitute.org} (\href{https://orcid.org/0000-0002-5288-4309}{ORCID})
 
+Authors:
+\itemize{
+  \item Weiguang Mao \email{wmao@flatironinstitute.org} (\href{https://orcid.org/0000-0002-5288-4309}{ORCID})
+}
+
 }
 \keyword{internal}

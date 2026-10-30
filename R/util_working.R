@@ -518,8 +518,9 @@ scatter.DiscretePlot <- function(coor,
                theme_void()+
                ggplot2::scale_color_manual(values = values)  
       }else{
-        p <- ggplot(dat.plot, aes(x=x,y=y,color= cluster))+
-             geom_point(size= pt.size)+
+        p <- ggplot()+
+             geom_point(data = dat.plot[dat.plot$cluster!=to_highlight,], aes(x=x,y=y,color= cluster), size= pt.size)+
+             geom_point(data = dat.plot[dat.plot$cluster==to_highlight,], aes(x=x,y=y,color= cluster), size= pt.size)+
              theme_void()+
              ggplot2::scale_color_manual(values = values)
       }#else

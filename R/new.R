@@ -387,12 +387,19 @@ refinement <- function(y,
 
   if (neighbor.option == "KNN"){
     #call nearest neighbors
-    snn.res <- Seurat::FindNeighbors(coor, k.param = neighbor.arg+1, return.neighbor = F, compute.SNN = T, verbose = F)
-    neighbor.mat <- snn.res$nn
-    diag(neighbor.mat) <- 0
+    #snn.res <- Seurat::FindNeighbors(coor, k.param = neighbor.arg+1, return.neighbor = F, compute.SNN = T, verbose = F)
+    #neighbor.mat <- snn.res$nn
+    #diag(neighbor.mat) <- 0
+    #neighbor.index <- apply(neighbor.mat, 1, function(x){which(x!=0)})
+    #neighbor.index <- lapply(seq_len(ncol(neighbor.index)), function(i) neighbor.index[,i])
 
-    neighbor.index <- apply(neighbor.mat, 1, function(x){which(x!=0)})
-    neighbor.index <- lapply(seq_len(ncol(neighbor.index)), function(i) neighbor.index[,i])
+    snn.res <- Seurat::FindNeighbors(coor, k.param = neighbor.arg+1, return.neighbor = T, compute.SNN = F, verbose = F)
+    nn.idx <- Seurat::Indices(nn.res)        # N × k matrix only -> ~33MB for 521K pixels
+    neighbor.index <- lapply(seq_len(nrow(coor)), function(i) {
+      idx <- nn.idx[i, ]
+      idx[idx != i]                          
+    })
+    
 
   }else if (neighbor.option == "Radius"){
     #decide neighbors based on the radius

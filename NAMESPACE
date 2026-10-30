@@ -62,25 +62,33 @@ import(harmony)
 import(mclust)
 import(sf)
 import(tripack)
-importFrom(future,multicore)
-importFrom(future,plan)
+importFrom(future,
+  multicore,
+  plan
+)
 importFrom(future.apply,future_lapply)
 importFrom(methods,as)
-importFrom(progressr,handler_txtprogressbar)
-importFrom(progressr,handlers)
-importFrom(progressr,with_progress)
+importFrom(progressr,
+  handler_txtprogressbar,
+  handlers,
+  with_progress
+)
 importFrom(rsvd,rsvd)
-importFrom(stats,as.dist)
-importFrom(stats,cor)
-importFrom(stats,dist)
-importFrom(stats,hclust)
-importFrom(stats,kmeans)
-importFrom(stats,median)
-importFrom(stats,p.adjust)
-importFrom(stats,predict)
-importFrom(stats,quantile)
-importFrom(stats,sd)
-importFrom(stats,wilcox.test)
-importFrom(utils,head)
-importFrom(utils,packageVersion)
+importFrom(stats,
+  as.dist,
+  cor,
+  dist,
+  hclust,
+  kmeans,
+  median,
+  p.adjust,
+  predict,
+  quantile,
+  sd,
+  wilcox.test
+)
+importFrom(utils,
+  head,
+  packageVersion
+)
 useDynLib(DaVinci, .registration=TRUE)
